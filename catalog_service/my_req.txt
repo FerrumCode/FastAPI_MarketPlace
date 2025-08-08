@@ -1,0 +1,48 @@
+При ошибке ниже
+
+
+
+(.venv) PS C:\Users\rezon\PycharmProjects\fastapi_market_place_01\catalog_service> alembic revision --autogenerate -m "Initial migration"
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Scripts\alembic.exe\__main__.py", line 7, in <module>
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\config.py", line 636, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\config.py", line 626, in main
+    self.run_cmd(cfg, options)
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\config.py", line 603, in run_cmd
+    fn(
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\command.py", line 236, in revision
+    script_directory.run_env()
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\script\base.py", line 586, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\util\pyfiles.py", line 95, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rezon\PycharmProjects\fastapi_ecommerce\.venv\Lib\site-packages\alembic\util\pyfiles.py", line 113, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\rezon\PycharmProjects\fastapi_market_place_01\catalog_service\alembic\env.py", line 14, in <module>
+    from catalog_service.app.models.db import Base
+ModuleNotFoundError: No module named 'catalog_service'
+
+
+
+Нужно поместить в alembic/env.py
+надо всем код ниже
+
+
+
+import sys
+print("=== sys.path ===")
+for path in sys.path:
+    print(path)
+print("================")
+
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
