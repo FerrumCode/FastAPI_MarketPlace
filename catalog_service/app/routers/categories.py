@@ -4,10 +4,10 @@ from typing import Annotated
 from sqlalchemy import insert
 from slugify import slugify
 
-from catalog_service.app.models.db_depends import get_db
-from catalog_service.app.schemas.categories import CreateCategory
-from catalog_service.app.models.categories import Category
-from catalog_service.app.models.products import Product
+# from catalog_service.app.models.db_depends import get_db
+# from catalog_service.app.schemas.categories import CreateCategory
+# from catalog_service.app.models.categories import Category
+# from catalog_service.app.models.products import Product
 
 router = APIRouter(prefix='/category', tags=['categories'])
 
