@@ -1,15 +1,5 @@
+import os
 import sys
-print("=== sys.path ===")
-for path in sys.path:
-    print(path)
-print("================")
-
-
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
-
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -17,10 +7,16 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from catalog_service.app.models.db import Base
-from catalog_service.app.models.categories import Category
-from catalog_service.app.models.products import Product
+current_dir = os.path.dirname(__file__)
+project_root = os.path.dirname(current_dir)
+sys.path.insert(0, project_root)
 
+from app.db import Base
+from app.models.user import User
+from app.models.product import Product
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.role_permission import RolePermission
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -33,14 +29,28 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+# Ниже рабочее для синхрона
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://user:pass@localhost:5433/auth_db"
+)
+
+# Ниже для асинхрона, работает, но на делании миграций ошибка
+# DATABASE_URL = os.getenv(
+#     "DATABASE_URL",
+#     "postgresql+asyncpg://user:pass@localhost:5433/auth_db"
+# )
+
+
+
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 def run_migrations_offline() -> None:

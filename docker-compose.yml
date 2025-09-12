@@ -1,0 +1,48 @@
+# version: '3.9'
+
+services:
+  auth_service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:pass@auth_db:5432/auth_db # postgresql+psycopg2://user:pass@auth_db:5432/auth_db
+    volumes:
+      - ./auth_service:/app
+    restart: always
+
+  auth_db:
+    image: postgres:15
+    container_name: auth_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    restart: always
+
+  auth_pgadmin:
+    image: dpage/pgadmin4
+    container_name: auth_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - auth_db
+
+volumes:
+  auth_data:
+  pgadmin_data:

@@ -3,5 +3,8 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.12 (fastapi_market_place_01)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 virtualenv at C:\Users\rezon\PycharmProjects\fastapi_market_place_01\auth_service\.venv" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 virtualenv at C:\Users\Admin\PycharmProjects\fastapi_market_place_01\auth_service\.venv" project-jdk-type="Python SDK" />
+  <component name="PythonCompatibilityInspectionAdvertiser">
+    <option name="version" value="3" />
+  </component>
 </project>

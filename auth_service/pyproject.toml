@@ -16,6 +16,13 @@ fastapi = "^0.116.1"
 uvicorn = { extras = ["standard"], version = "^0.35.0" }
 slugify = "^0.0.1"
 sqlalchemy = "^2.0.42"
+asyncpg = "^0.30"
+alembic = "^1.16.4"
+psycopg2-binary = "^2.9.10"
+passlib = "==1.7.4"      # фиксируем старую стабильную версию
+bcrypt = "==4.0.1"       # фиксируем совместимую версию
+python-multipart = "^0.0.20"
+pyjwt = "^2.10.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"

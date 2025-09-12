@@ -1,13 +1,16 @@
 FROM python:3.13.5-bookworm
 
-WORKDIR /auth_service
+WORKDIR /app
 
-COPY requirements.txt .
+RUN pip install --upgrade pip wheel "poetry==2.1.4"
+RUN poetry config virtualenvs.create false
 
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+# Копируем только файлы зависимостей
+COPY pyproject.toml poetry.lock ./
+
+RUN poetry install --no-root --no-interaction
 
 COPY . .
 
-# CMD ["sh", "-c", "alembic upgrade head && python -m app.models.seed && uvicorn app.main:app --host 0.0.0.0 --port 3000"]
-
-CMD ["python", "app/main.py"]
+# Запускаем сервис
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
