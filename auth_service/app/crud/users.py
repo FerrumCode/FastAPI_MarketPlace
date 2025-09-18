@@ -6,9 +6,8 @@ from passlib.context import CryptContext
 
 from app.models.user import User
 from app.models.role import Role
-from app.schemas import CreateUser
+from app.schemas.user import CreateUser
 from app.db_depends import get_db
-from fastapi import Body
 from sqlalchemy import update, delete
 from app.dependencies.auth import get_admin_user
 

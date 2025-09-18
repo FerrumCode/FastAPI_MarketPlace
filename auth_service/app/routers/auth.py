@@ -6,7 +6,6 @@ from passlib.context import CryptContext
 
 from app.models.user import User
 from app.models.role import Role
-from app.schemas import CreateUser
 from app.db_depends import get_db
 from fastapi import Body
 
@@ -16,6 +15,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 # для JWT
 from datetime import datetime, timedelta, timezone
 import jwt
+from app.schemas.user import CreateUser
+from app.schemas.role import CreateRole
+from app.schemas.permission import CreatePermission
 
 
 

@@ -1,15 +1,11 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy import select, insert, update, delete
+from sqlalchemy import select, update, delete
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
 
-from app.models.user import User
 from app.models.role import Role
-from app.schemas import CreateUser
-from app.schemas import CreateRole
+from app.schemas.role import CreateRole
 from app.db_depends import get_db
-from fastapi import Body
 from app.dependencies.auth import get_admin_user
 
 router = APIRouter(prefix='/role', tags=['Role'])

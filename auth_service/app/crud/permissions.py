@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy import select, insert, update, delete
+from sqlalchemy import select, update, delete
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.permission import Permission
-from app.schemas import CreatePermission
+from app.schemas.permission import CreatePermission
 from app.db_depends import get_db
 from app.dependencies.auth import get_admin_user
 
