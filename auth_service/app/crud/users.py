@@ -10,14 +10,16 @@ from app.schemas.user import CreateUser
 from app.db_depends import get_db
 from sqlalchemy import update, delete
 from app.dependencies.auth import get_admin_user
+from app.dependencies.auth import check_blacklist
 
 router = APIRouter(prefix='/user', tags=['User'])
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto') # Для хеширования паролей
 
-
+# token: str = Depends(check_blacklist) вешаем в каждый эндпоинт для блеклистинга
 @router.get('/get_users')
 async def get_users(db: Annotated[AsyncSession, Depends(get_db)],
-                    admin_user: dict = Depends(get_admin_user)
+                    admin_user: dict = Depends(get_admin_user),
+                    token: str = Depends(check_blacklist)
                     ):
     try:
         targets = select(

@@ -1,4 +1,4 @@
-# version: '3.9'
+version: '3.9'
 
 services:
   auth_service:
@@ -9,9 +9,13 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - auth_db
+      auth_db:
+        condition: service_healthy
+      auth_redis:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@auth_db:5432/auth_db # postgresql+psycopg2://user:pass@auth_db:5432/auth_db
+      DATABASE_URL: postgresql+asyncpg://user:pass@auth_db:5432/auth_db
+      REDIS_URL: redis://auth_redis:6379
     volumes:
       - ./auth_service:/app
     restart: always
@@ -27,6 +31,11 @@ services:
       - "5433:5432"
     volumes:
       - auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   auth_pgadmin:
@@ -41,8 +50,24 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - auth_db
+      auth_db:
+        condition: service_healthy
+
+  auth_redis:
+    image: redis:7
+    container_name: auth_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
 
 volumes:
   auth_data:
   pgadmin_data:
+  redis_data:

@@ -23,9 +23,11 @@ passlib = "==1.7.4"      # фиксируем старую стабильную 
 bcrypt = "==4.0.1"       # фиксируем совместимую версию
 python-multipart = "^0.0.20"
 pyjwt = "^2.10.1"
+redis = "^5.0.8"         # ✅ добавляем поддержку Redis asyncio API
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
+alembic = "^1.16.5"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
