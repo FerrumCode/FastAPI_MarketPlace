@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   auth_service:
     build:
@@ -48,7 +46,7 @@ services:
     ports:
       - "5050:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - auth_pgadmin_data:/var/lib/pgadmin
     depends_on:
       auth_db:
         condition: service_healthy
@@ -59,7 +57,73 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - auth_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  catalog_service:
+    build:
+      context: ./catalog_service
+      dockerfile: Dockerfile
+    container_name: catalog_service
+    ports:
+      - "8001:8000"
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+      catalog_redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:pass@catalog_db:5432/catalog_db
+      REDIS_URL: redis://catalog_redis:6379
+    volumes:
+      - ./catalog_service:/app
+    restart: always
+
+  catalog_db:
+    image: postgres:15
+    container_name: catalog_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: catalog_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d catalog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  catalog_pgadmin:
+    image: dpage/pgadmin4
+    container_name: catalog_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5051:80" # другой порт, чтобы не конфликтовать с auth_pgadmin
+    volumes:
+      - catalog_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+
+  catalog_redis:
+    image: redis:7
+    container_name: catalog_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - catalog_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -69,5 +133,8 @@ services:
 
 volumes:
   auth_data:
-  pgadmin_data:
-  redis_data:
+  auth_pgadmin_data:
+  auth_redis_data:
+  catalog_data:
+  catalog_redis_data:
+  catalog_pgadmin_data:

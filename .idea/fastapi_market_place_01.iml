@@ -6,6 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/reviews_service" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/auth_service" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/.venv/Scripts" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/catalog_service" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/catalog_service/app" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/catalog_service/.venv1" />
       <excludeFolder url="file://$MODULE_DIR$/auth_service/.venv" />

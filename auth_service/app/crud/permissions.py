@@ -6,14 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.permission import Permission
 from app.schemas.permission import CreatePermission
 from app.db_depends import get_db
-from app.dependencies.auth import get_admin_user
+from app.dependencies.auth import verify_admin_and_get_user
 
 router = APIRouter(prefix='/permission', tags=['Permission'])
 
 
 @router.get('/get_permissions')
 async def get_permissions(db: Annotated[AsyncSession, Depends(get_db)],
-                          admin_user: dict = Depends(get_admin_user)
+                          admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         query = select(Permission)
@@ -33,7 +33,7 @@ async def get_permissions(db: Annotated[AsyncSession, Depends(get_db)],
 async def create_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     create_permission: CreatePermission,  # Предполагается схема с полями code и description
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         # Проверяем, существует ли разрешение с таким же кодом
@@ -79,7 +79,7 @@ async def change_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     permission_code: str,
     permission_data: CreatePermission,  # Схема с новыми данными
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         # 1. Проверяем, существует ли разрешение с таким кодом
@@ -140,7 +140,7 @@ async def change_permission(
 async def delete_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     code: str,  # Удаляем по коду разрешения
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         # Проверяем существование разрешения

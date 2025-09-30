@@ -8,9 +8,8 @@ from app.crud import permissions
 from app.middleware.jwt_middleware import JWTMiddleware
 from app.core.redis import init_redis, close_redis
 
-# Импорты автоинициализации БД
 from app.db import engine, Base
-#from app.init_roles import create_default_roles
+
 
 app = FastAPI(title="Auth Service")
 

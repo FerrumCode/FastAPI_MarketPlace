@@ -6,14 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.role import Role
 from app.schemas.role import CreateRole
 from app.db_depends import get_db
-from app.dependencies.auth import get_admin_user
+from app.dependencies.auth import verify_admin_and_get_user
 
 router = APIRouter(prefix='/role', tags=['Role'])
 
 
 @router.get('/get_roles')
 async def get_roles(db: Annotated[AsyncSession, Depends(get_db)],
-                    admin_user: dict = Depends(get_admin_user)
+                    admin_user: dict = Depends(verify_admin_and_get_user)
                     ):
     try:
         query = select(Role)
@@ -33,7 +33,7 @@ async def get_roles(db: Annotated[AsyncSession, Depends(get_db)],
 async def create_role(db: Annotated[AsyncSession,
     Depends(get_db)],
     create_role: CreateRole,
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
     ):
     try:
         # ПРАВИЛЬНАЯ проверка: ищем роль с таким же именем
@@ -80,7 +80,7 @@ async def update_role(
         db: Annotated[AsyncSession, Depends(get_db)],
         role_name: str,
         role_data: CreateRole,  # ИЗМЕНИЛ НАЗВАНИЕ ПАРАМЕТРА!
-        admin_user: dict = Depends(get_admin_user)
+        admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         # 1. Проверяем, существует ли роль с таким именем
@@ -141,7 +141,7 @@ async def update_role(
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     # Проверяем существование роли
     role_result = await db.execute(select(Role).where(Role.name == name))

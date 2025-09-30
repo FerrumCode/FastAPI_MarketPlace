@@ -9,7 +9,7 @@ from app.models.role import Role
 from app.schemas.user import CreateUser
 from app.db_depends import get_db
 from sqlalchemy import update, delete
-from app.dependencies.auth import get_admin_user
+from app.dependencies.auth import verify_admin_and_get_user
 from app.dependencies.auth import check_blacklist
 
 router = APIRouter(prefix='/user', tags=['User'])
@@ -18,7 +18,7 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto') # Для х
 # token: str = Depends(check_blacklist) вешаем в каждый эндпоинт для блеклистинга
 @router.get('/get_users')
 async def get_users(db: Annotated[AsyncSession, Depends(get_db)],
-                    admin_user: dict = Depends(get_admin_user),
+                    admin_user: dict = Depends(verify_admin_and_get_user),
                     token: str = Depends(check_blacklist)
                     ):
     try:
@@ -40,7 +40,7 @@ async def get_users(db: Annotated[AsyncSession, Depends(get_db)],
 
 @router.get('/get_user_info/{name}')
 async def get_user_info(db: Annotated[AsyncSession, Depends(get_db)], name: str,
-                        admin_user: dict = Depends(get_admin_user)
+                        admin_user: dict = Depends(verify_admin_and_get_user)
                         ):
     try:
         target = select(User).where(User.name == name)
@@ -64,7 +64,7 @@ async def get_user_info(db: Annotated[AsyncSession, Depends(get_db)], name: str,
 @router.post('/create_user', status_code=status.HTTP_201_CREATED)
 async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser,
                       role_id: int,
-                      admin_user: dict = Depends(get_admin_user)
+                      admin_user: dict = Depends(verify_admin_and_get_user)
                       ):
     # Проверяем существование роли
     result = await db.execute(select(Role).where(Role.id == role_id))
@@ -96,7 +96,7 @@ async def update_user_by_name(
     name: str,
     update_user: CreateUser,
     role_id: int,
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     # Проверка пользователя
     if not (await db.execute(select(User).where(User.name == name))).scalar_one_or_none():
@@ -123,7 +123,7 @@ async def update_user_by_name(
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    admin_user: dict = Depends(get_admin_user)
+    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     # Проверяем существование пользователя
     user_result = await db.execute(select(User).where(User.name == name))
