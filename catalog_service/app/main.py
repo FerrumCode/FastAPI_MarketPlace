@@ -1,40 +1,27 @@
 import uvicorn
 from fastapi import FastAPI
-from app.routers import categories
-from app.routers import products
-
-
-#from app.middleware.jwt_middleware import JWTMiddleware
-#from app.core.redis import init_redis, close_redis
-
-from app.db import engine, Base
-
+from app.routers import categories, products
+from app.core.redis import init_redis, close_redis
+from app.core.kafka import init_kafka, close_kafka
 
 app = FastAPI(title="Catalog Service")
 
 
-# Redis init
 @app.on_event("startup")
 async def startup():
-    pass
-    # #Инициализируем Redis
-    # await init_redis(app)
+    await init_redis(app)
+    await init_kafka()
 
 
-# @app.on_event("shutdown")
-# async def shutdown():
-#     await close_redis()
+@app.on_event("shutdown")
+async def shutdown():
+    await close_redis()
+    await close_kafka()
 
 
-# Добавляем JWT middleware (публичные пути уже внутри middleware)
-#pp.add_middleware(JWTMiddleware)
-
-
-# app.include_router(categories.router)
 app.include_router(categories.router)
 app.include_router(products.router)
 
 
-
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
