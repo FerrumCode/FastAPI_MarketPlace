@@ -11,10 +11,7 @@ from app.dependencies.auth import verify_admin_and_get_user
 router = APIRouter(prefix='/role', tags=['Role'])
 
 
-@router.get('/get_roles')
-async def get_roles(db: Annotated[AsyncSession, Depends(get_db)],
-                    admin_user: dict = Depends(verify_admin_and_get_user)
-                    ):
+async def get_roles_from_db(db: Annotated[AsyncSession, Depends(get_db)]):
     try:
         query = select(Role)
         result = await db.execute(query)
@@ -29,12 +26,11 @@ async def get_roles(db: Annotated[AsyncSession, Depends(get_db)],
         )
 
 
-@router.post('/create_role', status_code=status.HTTP_201_CREATED)
-async def create_role(db: Annotated[AsyncSession,
+async def create_role_in_db(
+    db: Annotated[AsyncSession,
     Depends(get_db)],
     create_role: CreateRole,
-    admin_user: dict = Depends(verify_admin_and_get_user)
-    ):
+):
     try:
         # ПРАВИЛЬНАЯ проверка: ищем роль с таким же именем
         result = await db.execute(
@@ -75,12 +71,10 @@ async def create_role(db: Annotated[AsyncSession,
         )
 
 
-@router.put('/update_role/{role_name}', status_code=status.HTTP_200_OK)
-async def update_role(
+async def update_role_in_db(
         db: Annotated[AsyncSession, Depends(get_db)],
         role_name: str,
-        role_data: CreateRole,  # ИЗМЕНИЛ НАЗВАНИЕ ПАРАМЕТРА!
-        admin_user: dict = Depends(verify_admin_and_get_user)
+        role_data: CreateRole
 ):
     try:
         # 1. Проверяем, существует ли роль с таким именем
@@ -137,11 +131,9 @@ async def update_role(
         )
 
 
-@router.delete('/delete_role')
-async def delete_user(
+async def delete_user_from_db(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     # Проверяем существование роли
     role_result = await db.execute(select(Role).where(Role.name == name))

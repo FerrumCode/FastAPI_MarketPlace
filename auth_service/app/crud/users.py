@@ -15,22 +15,16 @@ from app.dependencies.auth import check_blacklist
 router = APIRouter(prefix='/user', tags=['User'])
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto') # Для хеширования паролей
 
-# token: str = Depends(check_blacklist) вешаем в каждый эндпоинт для блеклистинга
-@router.get('/get_users')
-async def get_users(db: Annotated[AsyncSession, Depends(get_db)],
-                    admin_user: dict = Depends(verify_admin_and_get_user),
-                    token: str = Depends(check_blacklist)
-                    ):
+
+async def get_all_users(db: AsyncSession):
     try:
         targets = select(
             User.role_id,
             User.name
         )
-
         result = await db.execute(targets)
         users = result.mappings().all()
         return users
-
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -38,21 +32,18 @@ async def get_users(db: Annotated[AsyncSession, Depends(get_db)],
         )
 
 
-@router.get('/get_user_info/{name}')
-async def get_user_info(db: Annotated[AsyncSession, Depends(get_db)], name: str,
-                        admin_user: dict = Depends(verify_admin_and_get_user)
-                        ):
+async def get_user(db: AsyncSession, name: str):
     try:
-        target = select(User).where(User.name == name)
-        result = await db.execute(target)
-        user = result.scalar_one_or_none()
+            target = select(User).where(User.name == name)
+            result = await db.execute(target)
+            user = result.scalar_one_or_none()
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Пользователь с именем '{name}' не найден"
-            )
-        return user
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Пользователь с именем '{name}' не найден"
+                )
+            return user
 
     except Exception as e:
         raise HTTPException(
@@ -61,11 +52,11 @@ async def get_user_info(db: Annotated[AsyncSession, Depends(get_db)], name: str,
         )
 
 
-@router.post('/create_user', status_code=status.HTTP_201_CREATED)
-async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser,
-                      role_id: int,
-                      admin_user: dict = Depends(verify_admin_and_get_user)
-                      ):
+async def create_user_in_db(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    create_user_data: CreateUser,
+    role_id: int,
+):
     # Проверяем существование роли
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
@@ -77,9 +68,9 @@ async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user:
         )
 
     # создаём пользователя с этой ролью
-    await db.execute(insert(User).values(name=create_user.name,
-                                         email=create_user.email,
-                                         password_hash=bcrypt_context.hash(create_user.password),
+    await db.execute(insert(User).values(name=create_user_data.name,
+                                         email=create_user_data.email,
+                                         password_hash=bcrypt_context.hash(create_user_data.password),
                                          role_id=role_id
                                          ))
     await db.commit()
@@ -90,13 +81,11 @@ async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user:
     }
 
 
-@router.put('/update_user_by_name/{name}', status_code=200)
 async def update_user_by_name(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
     update_user: CreateUser,
     role_id: int,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     # Проверка пользователя
     if not (await db.execute(select(User).where(User.name == name))).scalar_one_or_none():
@@ -119,11 +108,10 @@ async def update_user_by_name(
     return {'status': 'updated'}
 
 
-@router.delete('/delete_user/{name}')
+
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
-    name: str,
-    admin_user: dict = Depends(verify_admin_and_get_user)
+    name: str
 ):
     # Проверяем существование пользователя
     user_result = await db.execute(select(User).where(User.name == name))

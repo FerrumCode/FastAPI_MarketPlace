@@ -1,9 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.routers import auth
-from app.crud import users
-from app.crud import roles
-from app.crud import permissions
+from app.routers import auth, users, roles, permissions
 
 from app.middleware.jwt_middleware import JWTMiddleware
 from app.core.redis import init_redis, close_redis

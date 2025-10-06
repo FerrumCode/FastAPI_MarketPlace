@@ -11,10 +11,7 @@ from app.dependencies.auth import verify_admin_and_get_user
 router = APIRouter(prefix='/permission', tags=['Permission'])
 
 
-@router.get('/get_permissions')
-async def get_permissions(db: Annotated[AsyncSession, Depends(get_db)],
-                          admin_user: dict = Depends(verify_admin_and_get_user)
-):
+async def get_permissions_from_db(db: Annotated[AsyncSession, Depends(get_db)]):
     try:
         query = select(Permission)
         result = await db.execute(query)
@@ -29,11 +26,9 @@ async def get_permissions(db: Annotated[AsyncSession, Depends(get_db)],
         )
 
 
-@router.post('/create_permission', status_code=status.HTTP_201_CREATED)
-async def create_permission(
+async def create_permission_in_db(
     db: Annotated[AsyncSession, Depends(get_db)],
     create_permission: CreatePermission,  # Предполагается схема с полями code и description
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     try:
         # Проверяем, существует ли разрешение с таким же кодом
@@ -74,8 +69,7 @@ async def create_permission(
         )
 
 
-@router.put('/change_permission/{permission_code}', status_code=status.HTTP_200_OK)
-async def change_permission(
+async def change_permission_in_db(
     db: Annotated[AsyncSession, Depends(get_db)],
     permission_code: str,
     permission_data: CreatePermission,  # Схема с новыми данными
@@ -136,8 +130,7 @@ async def change_permission(
         )
 
 
-@router.delete('/delete_permission')
-async def delete_permission(
+async def delete_permission_in_db(
     db: Annotated[AsyncSession, Depends(get_db)],
     code: str,  # Удаляем по коду разрешения
     admin_user: dict = Depends(verify_admin_and_get_user)
