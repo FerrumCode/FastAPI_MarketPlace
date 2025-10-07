@@ -17,9 +17,7 @@ from app.core.redis import get_redis
 
 from env import SECRET_KEY, ALGORITHM
 
-# Настройки JWT
-# SECRET_KEY = 'a21679097c1ba42e9bd06eea239cdc5bf19b249e87698625cba5e3572f005544'
-# ALGORITHM = 'HS256'
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
