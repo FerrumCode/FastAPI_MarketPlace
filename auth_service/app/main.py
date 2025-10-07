@@ -29,11 +29,12 @@ async def shutdown():
 # Добавляем JWT middleware (публичные пути уже внутри middleware)
 app.add_middleware(JWTMiddleware)
 
-# Подключаем роутеры
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(roles.router)
 app.include_router(permissions.router)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
