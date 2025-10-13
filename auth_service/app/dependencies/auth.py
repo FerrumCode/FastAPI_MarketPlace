@@ -9,17 +9,18 @@ from app.models.user import User  # Используем SQLAlchemy модель
 from app.models.role import Role
 from sqlalchemy import select
 from app.routers.auth import get_current_user, oauth2_scheme
+from app.core.redis import get_redis
 
-# -----------------------------
-# Подключение к Redis (один экземпляр)
-# -----------------------------
-redis: Redis | None = None
-
-async def get_redis() -> Redis:
-    global redis
-    if not redis:
-        redis = Redis.from_url("redis://auth_redis:6379", decode_responses=True)
-    return redis
+# # -----------------------------
+# # Подключение к Redis (один экземпляр)
+# # -----------------------------
+# redis: Redis | None = None
+#
+# async def get_redis() -> Redis:
+#     global redis
+#     if not redis:
+#         redis = Redis.from_url("redis://auth_redis:6379", decode_responses=True)
+#     return redis
 
 
 # -----------------------------

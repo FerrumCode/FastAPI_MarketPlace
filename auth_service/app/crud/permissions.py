@@ -1,22 +1,16 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy import select, update, delete
-from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.permission import Permission
 from app.schemas.permission import CreatePermission
-from app.db_depends import get_db
-from app.dependencies.auth import verify_admin_and_get_user
-
-router = APIRouter(prefix='/permission', tags=['Permission'])
 
 
-async def get_permissions_from_db(db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_permissions_from_db(db: AsyncSession):
     try:
         query = select(Permission)
         result = await db.execute(query)
         permissions = result.scalars().all()
-
         return permissions
 
     except Exception as e:
@@ -26,10 +20,7 @@ async def get_permissions_from_db(db: Annotated[AsyncSession, Depends(get_db)]):
         )
 
 
-async def create_permission_in_db(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    create_permission: CreatePermission,  # Предполагается схема с полями code и description
-):
+async def create_permission_in_db(db: AsyncSession, create_permission: CreatePermission):
     try:
         # Проверяем, существует ли разрешение с таким же кодом
         result = await db.execute(
@@ -54,9 +45,9 @@ async def create_permission_in_db(
         await db.refresh(new_permission)
 
         return {
-            'status_code': status.HTTP_201_CREATED,
-            'message': 'Разрешение успешно создано',
-            'permission': new_permission
+            "status_code": status.HTTP_201_CREATED,
+            "message": "Разрешение успешно создано",
+            "permission": new_permission
         }
 
     except HTTPException:
@@ -70,13 +61,12 @@ async def create_permission_in_db(
 
 
 async def change_permission_in_db(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: AsyncSession,
     permission_code: str,
-    permission_data: CreatePermission,  # Схема с новыми данными
-    admin_user: dict = Depends(verify_admin_and_get_user)
+    permission_data: CreatePermission
 ):
     try:
-        # 1. Проверяем, существует ли разрешение с таким кодом
+        # Проверяем, существует ли разрешение
         result = await db.execute(
             select(Permission).where(Permission.code == permission_code)
         )
@@ -88,7 +78,7 @@ async def change_permission_in_db(
                 detail=f"Разрешение с кодом '{permission_code}' не найдено"
             )
 
-        # 2. Проверяем, не существует ли уже разрешения с новым кодом (если код меняется)
+        # Проверяем, не существует ли уже разрешения с новым кодом
         if permission_data.code != permission_code:
             result = await db.execute(
                 select(Permission).where(Permission.code == permission_data.code)
@@ -101,7 +91,7 @@ async def change_permission_in_db(
                     detail=f"Разрешение с кодом '{permission_data.code}' уже существует"
                 )
 
-        # 3. Обновляем разрешение
+        # Обновляем разрешение
         await db.execute(
             update(Permission)
             .where(Permission.code == permission_code)
@@ -113,11 +103,11 @@ async def change_permission_in_db(
         await db.commit()
 
         return {
-            'status': 'success',
-            'message': 'Разрешение успешно обновлено',
-            'old_code': permission_code,
-            'new_code': permission_data.code,
-            'new_description': permission_data.description
+            "status": "success",
+            "message": "Разрешение успешно обновлено",
+            "old_code": permission_code,
+            "new_code": permission_data.code,
+            "new_description": permission_data.description
         }
 
     except HTTPException:
@@ -130,13 +120,8 @@ async def change_permission_in_db(
         )
 
 
-async def delete_permission_in_db(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    code: str,  # Удаляем по коду разрешения
-    admin_user: dict = Depends(verify_admin_and_get_user)
-):
+async def delete_permission_in_db(db: AsyncSession, code: str):
     try:
-        # Проверяем существование разрешения
         permission_result = await db.execute(select(Permission).where(Permission.code == code))
         permission = permission_result.scalar_one_or_none()
 
@@ -146,16 +131,12 @@ async def delete_permission_in_db(
                 detail=f"Разрешение с кодом '{code}' не найдено"
             )
 
-        # Удаляем разрешение
-        await db.execute(
-            delete(Permission)
-            .where(Permission.code == code)
-        )
+        await db.execute(delete(Permission).where(Permission.code == code))
         await db.commit()
 
         return {
-            'status_code': status.HTTP_200_OK,
-            'message': 'Разрешение успешно удалено'
+            "status_code": status.HTTP_200_OK,
+            "message": "Разрешение успешно удалено"
         }
 
     except HTTPException:
