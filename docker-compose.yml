@@ -17,6 +17,8 @@ services:
     volumes:
       - ./auth_service:/app
     restart: always
+    networks:
+      - backend_network
 
   auth_db:
     image: postgres:15
@@ -35,6 +37,8 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - backend_network
 
   auth_pgadmin:
     image: dpage/pgadmin4
@@ -50,6 +54,8 @@ services:
     depends_on:
       auth_db:
         condition: service_healthy
+    networks:
+      - backend_network
 
   auth_redis:
     image: redis:7
@@ -64,6 +70,8 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - backend_network
 
   catalog_service:
     build:
@@ -86,6 +94,8 @@ services:
     volumes:
       - ./catalog_service:/app
     restart: always
+    networks:
+      - backend_network
 
   catalog_db:
     image: postgres:15
@@ -104,6 +114,8 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - backend_network
 
   catalog_pgadmin:
     image: dpage/pgadmin4
@@ -119,6 +131,8 @@ services:
     depends_on:
       catalog_db:
         condition: service_healthy
+    networks:
+      - backend_network
 
   catalog_redis:
     image: redis:7
@@ -133,10 +147,9 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - backend_network
 
-  # --------------------------
-  # 🆕 Orders Service
-  # --------------------------
   orders_service:
     build:
       context: ./orders_service
@@ -152,6 +165,8 @@ services:
     volumes:
       - ./orders_service:/app
     restart: always
+    networks:
+      - backend_network
 
   orders_db:
     image: postgres:15
@@ -170,6 +185,8 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - backend_network
 
   orders_pgadmin:
     image: dpage/pgadmin4
@@ -185,10 +202,9 @@ services:
     depends_on:
       orders_db:
         condition: service_healthy
+    networks:
+      - backend_network
 
-  # --------------------------
-  # Kafka + Zookeeper
-  # --------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -198,6 +214,8 @@ services:
     ports:
       - "2181:2181"
     restart: always
+    networks:
+      - backend_network
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -218,6 +236,8 @@ services:
       timeout: 5s
       retries: 10
     restart: always
+    networks:
+      - backend_network
 
 volumes:
   auth_data:
@@ -228,3 +248,7 @@ volumes:
   catalog_pgadmin_data:
   orders_data:
   orders_pgadmin_data:
+
+networks:
+  backend_network:
+    driver: bridge
