@@ -1,4 +1,7 @@
 services:
+  # ======================
+  # AUTH SERVICE
+  # ======================
   auth_service:
     build:
       context: ./auth_service
@@ -11,9 +14,8 @@ services:
         condition: service_healthy
       auth_redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@auth_db:5432/auth_db
-      REDIS_URL: redis://auth_redis:6379
+    env_file:
+      - ./auth_service/.env
     volumes:
       - ./auth_service:/app
     restart: always
@@ -23,10 +25,12 @@ services:
   auth_db:
     image: postgres:15
     container_name: auth_db
+    env_file:
+      - ./auth_service/.env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5433:5432"
     volumes:
@@ -43,10 +47,8 @@ services:
   auth_pgadmin:
     image: dpage/pgadmin4
     container_name: auth_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.org
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    env_file:
+      - ./auth_service/.env.pgadmin
     ports:
       - "5050:80"
     volumes:
@@ -73,6 +75,9 @@ services:
     networks:
       - backend_network
 
+  # ======================
+  # CATALOG SERVICE
+  # ======================
   catalog_service:
     build:
       context: ./catalog_service
@@ -87,10 +92,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@catalog_db:5432/catalog_db
-      REDIS_URL: redis://catalog_redis:6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    env_file:
+      - ./catalog_service/.env
     volumes:
       - ./catalog_service:/app
     restart: always
@@ -100,10 +103,12 @@ services:
   catalog_db:
     image: postgres:15
     container_name: catalog_db
+    env_file:
+      - ./catalog_service/.env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: catalog_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5434:5432"
     volumes:
@@ -120,10 +125,8 @@ services:
   catalog_pgadmin:
     image: dpage/pgadmin4
     container_name: catalog_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.org
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    env_file:
+      - ./catalog_service/.env.pgadmin
     ports:
       - "5051:80"
     volumes:
@@ -150,6 +153,9 @@ services:
     networks:
       - backend_network
 
+  # ======================
+  # ORDERS SERVICE
+  # ======================
   orders_service:
     build:
       context: ./orders_service
@@ -160,8 +166,8 @@ services:
     depends_on:
       orders_db:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@orders_db:5432/orders_db
+    env_file:
+      - ./orders_service/.env
     volumes:
       - ./orders_service:/app
     restart: always
@@ -171,10 +177,12 @@ services:
   orders_db:
     image: postgres:15
     container_name: orders_db
+    env_file:
+      - ./orders_service/.env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: orders_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5435:5432"
     volumes:
@@ -191,10 +199,8 @@ services:
   orders_pgadmin:
     image: dpage/pgadmin4
     container_name: orders_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.org
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    env_file:
+      - ./orders_service/.env.pgadmin
     ports:
       - "5052:80"
     volumes:
@@ -205,6 +211,9 @@ services:
     networks:
       - backend_network
 
+  # ======================
+  # KAFKA + ZOOKEEPER
+  # ======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -239,6 +248,9 @@ services:
     networks:
       - backend_network
 
+# ======================
+# VOLUMES & NETWORK
+# ======================
 volumes:
   auth_data:
   auth_pgadmin_data:
