@@ -134,6 +134,61 @@ services:
       retries: 5
     restart: always
 
+  # --------------------------
+  # 🆕 Orders Service
+  # --------------------------
+  orders_service:
+    build:
+      context: ./orders_service
+      dockerfile: Dockerfile
+    container_name: orders_service
+    ports:
+      - "8002:8000"
+    depends_on:
+      orders_db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:pass@orders_db:5432/orders_db
+    volumes:
+      - ./orders_service:/app
+    restart: always
+
+  orders_db:
+    image: postgres:15
+    container_name: orders_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: orders_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - orders_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d orders_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  orders_pgadmin:
+    image: dpage/pgadmin4
+    container_name: orders_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5052:80"
+    volumes:
+      - orders_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      orders_db:
+        condition: service_healthy
+
+  # --------------------------
+  # Kafka + Zookeeper
+  # --------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -171,3 +226,5 @@ volumes:
   catalog_data:
   catalog_redis_data:
   catalog_pgadmin_data:
+  orders_data:
+  orders_pgadmin_data:
