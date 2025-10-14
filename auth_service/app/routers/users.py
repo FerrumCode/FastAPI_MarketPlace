@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 
-from app.schemas.user import CreateUser
+from app.schemas.user import CreateUser, UpdateUser
 from app.db_depends import get_db
 from app.crud.users import (
     get_all_users,
@@ -23,6 +23,7 @@ async def get_users(
     admin_user: dict = Depends(verify_admin_and_get_user),
     token: str = Depends(check_blacklist),
 ):
+    """Получить список всех пользователей (доступно только админу)"""
     return await get_all_users(db)
 
 
@@ -32,6 +33,7 @@ async def get_user_info(
     name: str,
     admin_user: dict = Depends(verify_admin_and_get_user),
 ):
+    """Получить информацию о пользователе по имени"""
     return await get_user(db, name)
 
 
@@ -42,6 +44,7 @@ async def create_user(
     role_id: int,
     admin_user: dict = Depends(verify_admin_and_get_user),
 ):
+    """Создать нового пользователя (админ-доступ)"""
     return await create_user_in_db(db, create_user_data, role_id)
 
 
@@ -49,10 +52,11 @@ async def create_user(
 async def update_user_by_name_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    update_user_data: CreateUser,
+    update_user_data: UpdateUser,
     role_id: int,
     admin_user: dict = Depends(verify_admin_and_get_user),
 ):
+    """Обновить данные пользователя по имени (админ-доступ)"""
     return await update_user_by_name(db, name, update_user_data, role_id)
 
 
@@ -62,4 +66,5 @@ async def delete_user_endpoint(
     name: str,
     admin_user: dict = Depends(verify_admin_and_get_user),
 ):
+    """Удалить пользователя (админ-доступ)"""
     return await delete_user(db, name)
