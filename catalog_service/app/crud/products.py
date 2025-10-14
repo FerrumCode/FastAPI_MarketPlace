@@ -8,13 +8,13 @@ from app.core.kafka import send_kafka_event
 
 
 
-async def get_all_products_from_db(db: AsyncSession = Depends(get_db)):
+async def get_all_products_from_db(db: AsyncSession):
     result = await db.execute(select(Product))
     products = result.scalars().all()
     return [ProductRead.model_validate(p) for p in products]
 
 
-async def get_product_from_db(id: str, db: AsyncSession = Depends(get_db)):
+async def get_product_from_db(id: str, db: AsyncSession):
     result = await db.execute(select(Product).where(Product.id == id))
     product = result.scalar_one_or_none()
     if not product:
@@ -22,7 +22,7 @@ async def get_product_from_db(id: str, db: AsyncSession = Depends(get_db)):
     return ProductRead.model_validate(product)
 
 
-async def create_product_in_db(data: ProductCreate, db: AsyncSession = Depends(get_db)):
+async def create_product_in_db(data: ProductCreate, db: AsyncSession):
     new_product = Product(**data.dict())
     db.add(new_product)
     await db.commit()
@@ -30,7 +30,7 @@ async def create_product_in_db(data: ProductCreate, db: AsyncSession = Depends(g
     return ProductRead.model_validate(new_product)
 
 
-async def update_product_in_db(id: str, data: ProductUpdate, db: AsyncSession = Depends(get_db)):
+async def update_product_in_db(id: str, data: ProductUpdate, db: AsyncSession):
     result = await db.execute(select(Product).where(Product.id == id))
     product = result.scalar_one_or_none()
     if not product:
@@ -52,7 +52,7 @@ async def update_product_in_db(id: str, data: ProductUpdate, db: AsyncSession = 
     return ProductRead.model_validate(product)
 
 
-async def delete_product_form_db(id: str, db: AsyncSession = Depends(get_db)):
+async def delete_product_form_db(id: str, db: AsyncSession):
     result = await db.execute(select(Product).where(Product.id == id))
     product = result.scalar_one_or_none()
     if not product:

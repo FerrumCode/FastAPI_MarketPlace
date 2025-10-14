@@ -7,7 +7,7 @@ from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.core.kafka import send_kafka_event
 from app.crud.products import (get_all_products_from_db, create_product_in_db, update_product_in_db,
                                get_product_from_db, delete_product_form_db)
-from app.depend.depend import get_current_user
+from app.dependencies.depend import get_current_user
 
 router = APIRouter(prefix="/products", tags=["Products"])
 

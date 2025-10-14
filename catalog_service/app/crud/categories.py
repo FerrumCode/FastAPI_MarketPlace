@@ -1,17 +1,13 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from redis.asyncio.client import Redis  # импортируем тип для аннотации
 from app.models.category import Category
-from app.db_depends import get_db
 from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
-from app.core.redis import get_redis
 
 
-
-async def get_all_categories_from_db(db: AsyncSession = Depends(get_db)):
-    redis = get_redis()
-
+async def get_all_categories_from_db(db: AsyncSession, redis: Redis):
     cached = await redis.get("categories:list")
     if cached:
         return json.loads(cached)
@@ -30,18 +26,17 @@ async def get_all_categories_from_db(db: AsyncSession = Depends(get_db)):
     return response
 
 
-async def create_category_in_db(category: CategoryCreate, db: AsyncSession = Depends(get_db)):
+async def create_category_in_db(category: CategoryCreate, db: AsyncSession, redis: Redis):
     new_cat = Category(name=category.name)
     db.add(new_cat)
     await db.commit()
     await db.refresh(new_cat)
 
-    redis = get_redis()
     await redis.delete("categories:list")  # сброс кеша
     return CategoryRead.model_validate(new_cat)
 
 
-async def update_category_in_db(id: str, data: CategoryUpdate, db: AsyncSession = Depends(get_db)):
+async def update_category_in_db(id: str, data: CategoryUpdate, db: AsyncSession, redis: Redis):
     result = await db.execute(select(Category).where(Category.id == id))
     cat = result.scalar_one_or_none()
     if not cat:
@@ -53,12 +48,11 @@ async def update_category_in_db(id: str, data: CategoryUpdate, db: AsyncSession 
     await db.commit()
     await db.refresh(cat)
 
-    redis = get_redis()
     await redis.delete("categories:list")
     return CategoryRead.model_validate(cat)
 
 
-async def delete_category_from_db(id: str, db: AsyncSession = Depends(get_db)):
+async def delete_category_from_db(id: str, db: AsyncSession, redis: Redis):
     result = await db.execute(select(Category).where(Category.id == id))
     cat = result.scalar_one_or_none()
     if not cat:
@@ -67,6 +61,5 @@ async def delete_category_from_db(id: str, db: AsyncSession = Depends(get_db)):
     await db.delete(cat)
     await db.commit()
 
-    redis = get_redis()
     await redis.delete("categories:list")
     return {"detail": "Category deleted"}

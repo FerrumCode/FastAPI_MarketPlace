@@ -36,9 +36,6 @@ async def init_redis(app: FastAPI) -> redis.Redis:
 
 
 async def get_redis() -> redis.Redis:
-    """
-    Dependency для получения Redis клиента
-    """
     if redis_client is None:
         raise RuntimeError("Redis клиент не инициализирован")
     return redis_client
