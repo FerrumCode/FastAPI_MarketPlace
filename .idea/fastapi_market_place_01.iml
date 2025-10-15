@@ -16,6 +16,7 @@
       <excludeFolder url="file://$MODULE_DIR$/catalog_service/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/orders_service/.venv_orders_service" />
       <excludeFolder url="file://$MODULE_DIR$/auth_service/.venv_auth" />
+      <excludeFolder url="file://$MODULE_DIR$/orders_service/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13 virtualenv at C:\Users\Admin\PycharmProjects\fastapi_market_place_01\auth_service\.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

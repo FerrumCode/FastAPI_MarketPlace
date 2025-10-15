@@ -1,7 +1,7 @@
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
-# Загружаем переменные из файла .env
+# Загружаем переменные из .env
 load_dotenv()
 
 # ======================

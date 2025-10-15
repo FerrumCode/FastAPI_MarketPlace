@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 import os
 
-# Загружаем переменные из файла .env
 load_dotenv()
 
 # ======================
@@ -20,6 +19,11 @@ DB_NAME = os.getenv("DB_NAME")
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = os.getenv("REDIS_PORT")
+
+# ======================
+# Kafka (если есть)
+# ======================
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 
 # ======================
 # JWT

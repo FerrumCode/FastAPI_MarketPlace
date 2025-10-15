@@ -1,7 +1,7 @@
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
-# Загружаем переменные из файла .env
+# Загружаем переменные из .env
 load_dotenv()
 
 # ======================
@@ -15,7 +15,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
 # ======================
-# Redis (если понадобится)
+# Redis
 # ======================
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_HOST = os.getenv("REDIS_HOST")
