@@ -17,7 +17,7 @@ class KafkaProducer:
         if self._producer is None:
             self._producer = AIOKafkaProducer(
                 bootstrap_servers=settings.KAFKA_BROKER,
-                value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8")
+                value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
             )
             await self._producer.start()
             logger.info("Kafka producer started")
@@ -41,7 +41,5 @@ kafka_producer = KafkaProducer()
 
 
 async def send_kafka_event(topic: str, payload: dict) -> None:
-    """
-    Унифицированная обёртка — чтобы в CRUD вызывать send_kafka_event(...), как в других сервисах.
-    """
+    """Единая обёртка для вызова из CRUD."""
     await kafka_producer.send(topic, payload)

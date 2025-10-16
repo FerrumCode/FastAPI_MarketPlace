@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_depends import get_db
@@ -22,7 +22,6 @@ async def get_all_orders(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    # показываем только заказы текущего пользователя
     user_id = user["id"]
     if isinstance(user_id, str):
         user_id = UUID(user_id)
@@ -35,11 +34,7 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    order = await get_order_from_db(order_id, db)
-    # (опционально) проверка владельца:
-    # if str(order.user_id) != str(user["id"]) and user.get("role") not in ("manager", "admin"):
-    #     raise HTTPException(status_code=403, detail="Forbidden")
-    return order
+    return await get_order_from_db(order_id, db)
 
 
 @router.post("/", response_model=OrderOut, status_code=status.HTTP_201_CREATED)

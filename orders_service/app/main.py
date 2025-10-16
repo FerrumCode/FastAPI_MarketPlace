@@ -6,7 +6,10 @@ from app.routers import orders as orders_router
 from app.routers import orders_crud
 from app.routers import orders_items_crud as order_items_router
 
-app = FastAPI(title="Orders Service")
+app = FastAPI(
+    title="Orders Service",
+    swagger_ui_parameters={"persistAuthorization": True},  # токен не слетает при перезагрузке
+)
 
 
 @app.on_event("startup")
