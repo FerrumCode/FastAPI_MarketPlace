@@ -5,12 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.kafka import kafka_producer
-from app.crud.orders import create_order, get_order, delete_order, update_order_status
+from app.service.orders import create_order, get_order, delete_order, update_order_status
 from app.db_depends import get_db  # имя файла сохранено как у тебя
 from app.dependencies.auth import get_current_user
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 @router.post("/", response_model=OrderOut, status_code=status.HTTP_201_CREATED)

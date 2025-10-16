@@ -38,3 +38,10 @@ class KafkaProducer:
 
 
 kafka_producer = KafkaProducer()
+
+
+async def send_kafka_event(topic: str, payload: dict) -> None:
+    """
+    Унифицированная обёртка — чтобы в CRUD вызывать send_kafka_event(...), как в других сервисах.
+    """
+    await kafka_producer.send(topic, payload)

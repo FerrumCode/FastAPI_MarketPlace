@@ -11,35 +11,46 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.clients import fetch_product
+from app.core.kafka import send_kafka_event
+from app.core.config import settings
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
 
 
-def _to_money(value: Decimal) -> Decimal:
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+def _money(x: Decimal) -> Decimal:
+    return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-async def create_order(
-    session: AsyncSession,
-    user_id: UUID,
-    items_in: Sequence[dict],
-    currency_base: str,
-    target_currency: str,
-) -> Order:
-    """
-    1) тянем товары из каталога
-    2) считаем cart_price (без доставки) в базовой валюте каталога
-    3) сохраняем заказ со статусом 'created' (delivery_price=0, total=cart_price)
-    4) возвращаем Order
-    """
-    if not items_in:
+async def get_all_orders_from_db(db: AsyncSession, user_id: UUID) -> list[OrderOut]:
+    q = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.user_id == user_id)
+        .order_by(Order.created_at.desc())
+    )
+    res = await db.execute(q)
+    orders = res.scalars().all()
+    return [OrderOut.model_validate(o) for o in orders]
+
+
+async def get_order_from_db(order_id: UUID, db: AsyncSession) -> OrderOut:
+    q = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+    res = await db.execute(q)
+    order = res.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return OrderOut.model_validate(order)
+
+
+async def create_order_in_db(data: OrderCreate, user_id: UUID, db: AsyncSession) -> OrderOut:
+    if not data.items:
         raise HTTPException(status_code=400, detail="Order must contain at least one item")
 
-    # Параллельно тянем товары
-    product_ids = [item["product_id"] for item in items_in]
+    # 1) Получаем товары из каталога параллельно
+    product_ids = [i.product_id for i in data.items]
     products = await asyncio.gather(*[fetch_product(pid) for pid in product_ids], return_exceptions=True)
 
-    # Собираем map product_id -> price
     prices: dict[UUID, Decimal] = {}
     for idx, p in enumerate(products):
         if isinstance(p, Exception):
@@ -49,68 +60,107 @@ async def create_order(
             price = Decimal(str(p["price"]))
         except Exception:
             raise HTTPException(status_code=400, detail=f"Bad product payload from Catalog for {product_ids[idx]}")
-        prices[pid] = price
+        prices[pid] = _money(price)
 
-    # Счёт корзины
+    # 2) Считаем корзину и готовим позиции
     cart_total = Decimal("0.00")
     order_items: list[OrderItem] = []
 
-    for item in items_in:
-        pid: UUID = item["product_id"]
-        qty: int = int(item["quantity"])
+    for item in data.items:
+        pid = item.product_id
+        qty = int(item.quantity)
         if pid not in prices:
             raise HTTPException(status_code=400, detail=f"Product not found in Catalog: {pid}")
-        unit_price = _to_money(prices[pid])
-        line_total = unit_price * qty
-        cart_total += line_total
+        unit_price = prices[pid]
+        cart_total += unit_price * qty
 
         order_items.append(
             OrderItem(
                 product_id=pid,
                 quantity=qty,
-                unit_price=float(unit_price),  # твоя модель хранит float; считаем Decimal и приводим
+                unit_price=float(unit_price),  # твои модели используют float в БД
             )
         )
 
-    cart_total = _to_money(cart_total)
+    cart_total = _money(cart_total)
 
+    # 3) Создаём заказ (доставка и конвертация сделает воркер)
     order = Order(
         user_id=user_id,
         status="created",
         delivery_price=float(Decimal("0.00")),
         cart_price=float(cart_total),
-        total_price=float(cart_total),  # воркер потом обновит total с доставкой и конвертацией
+        total_price=float(cart_total),
         items=order_items,
     )
 
-    session.add(order)
-    await session.flush()
-    await session.refresh(order)
-    return order
+    db.add(order)
+    await db.commit()
+    # перечитываем с items для корректного ответа
+    q = select(Order).options(selectinload(Order.items)).where(Order.id == order.id)
+    fresh = (await db.execute(q)).scalar_one()
+
+    # 4) Событие в Kafka для воркера
+    await send_kafka_event(
+        "order_events",
+        {
+            "event": "ORDER_CREATED",
+            "order_id": str(fresh.id),
+            "user_id": str(fresh.user_id),
+            "target_currency": data.target_currency,
+            "currency_base": settings.CURRENCY_BASE,
+            "items": [
+                {"product_id": str(i.product_id), "quantity": i.quantity, "unit_price": float(i.unit_price)}
+                for i in fresh.items
+            ],
+            "cart_price": float(fresh.cart_price),
+            "delivery_price": float(fresh.delivery_price),
+            "total_price": float(fresh.total_price),
+            "status": fresh.status,
+        },
+    )
+
+    return OrderOut.model_validate(fresh)
 
 
-async def get_order(session: AsyncSession, order_id: UUID) -> Order | None:
-    q = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
-    res = await session.execute(q)
-    return res.scalar_one_or_none()
-
-
-async def delete_order(session: AsyncSession, order_id: UUID) -> bool:
-    q = delete(Order).where(Order.id == order_id)
-    res = await session.execute(q)
-    return res.rowcount > 0
-
-
-async def update_order_status(session: AsyncSession, order_id: UUID, status: str) -> Order | None:
+async def update_order_status_in_db(order_id: UUID, data: OrderStatusPatch, db: AsyncSession) -> OrderOut:
     q = (
         update(Order)
         .where(Order.id == order_id)
-        .values(status=status)
+        .values(status=data.status)
         .returning(Order)
     )
-    res = await session.execute(q)
+    res = await db.execute(q)
+    updated = res.scalar_one_or_none()
+    if not updated:
+        raise HTTPException(status_code=404, detail="Order not found")
+    await db.commit()
+
+    # перечитать с items
+    q2 = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+    fresh = (await db.execute(q2)).scalar_one()
+
+    await send_kafka_event(
+        "order_events",
+        {"event": "ORDER_UPDATED", "order_id": str(order_id), "status": data.status},
+    )
+
+    return OrderOut.model_validate(fresh)
+
+
+async def delete_order_from_db(order_id: UUID, db: AsyncSession) -> dict:
+    q = select(Order).where(Order.id == order_id)
+    res = await db.execute(q)
     order = res.scalar_one_or_none()
-    if order:
-        await session.flush()
-        await session.refresh(order)
-    return order
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    await db.delete(order)
+    await db.commit()
+
+    await send_kafka_event(
+        "order_events",
+        {"event": "ORDER_UPDATED", "order_id": str(order_id), "status": "deleted"},
+    )
+
+    return {"detail": "Order deleted"}
