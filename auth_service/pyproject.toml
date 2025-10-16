@@ -25,6 +25,7 @@ python-multipart = "^0.0.20"
 pyjwt = "^2.10.1"
 redis = "^5.0.8"         # ✅ добавляем поддержку Redis asyncio API
 email-validator = "^2.3.0"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
