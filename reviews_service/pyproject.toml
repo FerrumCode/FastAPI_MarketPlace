@@ -27,6 +27,8 @@ redis = "^5.0.8"         # ✅ добавляем поддержку Redis async
 aiokafka = "^0.12.0"
 motor = "^3.7.1"
 pymongo = "^4.15.3"
+pydantic-settings = "^2.11.0"
+prometheus-fastapi-instrumentator = "^7.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
