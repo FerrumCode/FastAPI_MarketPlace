@@ -49,6 +49,15 @@ async def get_reviews_for_product(product_id: str, limit: int = 50, offset: int 
     return [serialize(d) async for d in cursor]
 
 
+async def get_all_reviews(limit: int = 50, offset: int = 0) -> list[dict]:
+    """
+    Вернуть все отзывы (пагинация), сортировка по created_at DESC.
+    """
+    col = get_reviews_col()
+    cursor = col.find({}).skip(offset).limit(limit).sort("created_at", -1)
+    return [serialize(d) async for d in cursor]
+
+
 async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_update_others: bool) -> dict:
     col = get_reviews_col()
     query: dict[str, Any] = {"product_id": product_id}

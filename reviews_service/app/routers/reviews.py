@@ -5,7 +5,6 @@ from app.schemas.review import ReviewCreate, ReviewOut, ReviewUpdate
 from app.service import reviews as svc
 from app.core.kafka import kafka_producer
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -28,8 +27,23 @@ async def add_review(payload: ReviewCreate, user: CurrentUser = None):
     return data
 
 
+@router.get("/", response_model=list[ReviewOut])
+async def get_all_reviews(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Получить все отзывы из БД (пагинация).
+    """
+
+    return await svc.get_all_reviews(limit=limit, offset=offset)
+
+
 @router.get("/{product_id}", response_model=list[ReviewOut])
-async def get_reviews(product_id: str, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
+async def get_reviews(
+        product_id: str,
+        limit: int = Query(50, ge=1, le=200),
+        offset: int = Query(0, ge=0)):
     return await svc.get_reviews_for_product(product_id=product_id, limit=limit, offset=offset)
 
 
