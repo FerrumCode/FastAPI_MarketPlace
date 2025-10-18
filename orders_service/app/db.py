@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://user:pass@localhost:5434/catalog_db"
+    # 🔥 fallback для локальных Alembic миграций
+    "postgresql+asyncpg://user:pass@localhost:5435/orders_db"
 )
 
 # создаём асинхронный движок
