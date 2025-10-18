@@ -7,14 +7,17 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import settings
 
+
 logger = logging.getLogger(__name__)
 bearer = HTTPBearer(auto_error=False)
+
 
 class User:
     def __init__(self, user_id: str, role: str = "user", email: str | None = None):
         self.id = user_id
         self.role = role
         self.email = email
+
 
 def get_current_user(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]
@@ -34,6 +37,7 @@ def get_current_user(
     except Exception as e:
         logger.exception("JWT decode error: %s", e)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
 
 def require_role(user: User, roles: list[str]):
     if user.role not in roles:

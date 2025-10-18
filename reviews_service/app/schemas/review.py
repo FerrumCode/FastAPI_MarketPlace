@@ -2,6 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
+
 class ReviewBase(BaseModel):
     product_id: str = Field(..., description="UUID строки товара")
     rating: int = Field(..., ge=1, le=5)
@@ -14,12 +15,15 @@ class ReviewBase(BaseModel):
             raise ValueError("product_id is required")
         return v
 
+
 class ReviewCreate(ReviewBase):
     pass
+
 
 class ReviewUpdate(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
     text: Optional[str] = None
+
 
 class ReviewOut(BaseModel):
     id: str

@@ -10,8 +10,11 @@ from app.core.kafka import kafka_producer
 from app.db import connect, disconnect
 from app.routers.reviews import router as reviews_router
 
+
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,8 +38,10 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
+
 # Метрики
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
 
 @app.get("/health")
 async def health():

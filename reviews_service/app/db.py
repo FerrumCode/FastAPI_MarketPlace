@@ -3,11 +3,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING, DESCENDING
 from app.core.config import settings
 
+
 logger = logging.getLogger(__name__)
 
 _client: AsyncIOMotorClient | None = None
 _db = None
 reviews_col = None
+
 
 async def connect():
     global _client, _db, reviews_col
@@ -19,6 +21,7 @@ async def connect():
         await reviews_col.create_index([("product_id", ASCENDING), ("created_at", DESCENDING)])
         await reviews_col.create_index([("product_id", ASCENDING), ("user_id", ASCENDING)], unique=True)
         logger.info("Mongo connected and indexes ensured")
+
 
 async def disconnect():
     global _client

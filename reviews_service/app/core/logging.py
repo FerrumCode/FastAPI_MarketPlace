@@ -3,6 +3,7 @@ import logging
 import sys
 from datetime import datetime
 
+
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         log = {
@@ -14,6 +15,7 @@ class JsonFormatter(logging.Formatter):
         if record.exc_info:
             log["exc_info"] = self.formatException(record.exc_info)
         return json.dumps(log, ensure_ascii=False)
+
 
 def setup_logging():
     handler = logging.StreamHandler(stream=sys.stdout)
