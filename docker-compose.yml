@@ -158,6 +158,8 @@ services:
     depends_on:
       orders_db:
         condition: service_healthy
+      kafka:                 # <=== ДОБАВЛЕНО
+        condition: service_healthy
     env_file:
       - ./orders_service/.env
     volumes:
@@ -200,7 +202,7 @@ services:
       - backend_network
 
   # ======================
-  # REVIEWS SERVICE (добавлено)
+  # REVIEWS SERVICE
   # ======================
   reviews_service:
     build:
@@ -264,7 +266,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"   # <=== добавлено, чтобы топики создавались автоматически
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
     healthcheck:

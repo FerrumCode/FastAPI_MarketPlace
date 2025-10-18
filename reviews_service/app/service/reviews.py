@@ -5,9 +5,8 @@ from fastapi import HTTPException
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
-from app.db import reviews_col
+from app.db import get_reviews_col   # <-- вместо "from app.db import reviews_col"
 from app.schemas.review import ReviewCreate, ReviewUpdate
-
 
 
 def _now() -> datetime:
@@ -27,6 +26,7 @@ def serialize(doc: Mapping[str, Any]) -> dict[str, Any]:
 
 
 async def create_review(user_id: str, data: ReviewCreate) -> dict:
+    col = get_reviews_col()
     doc = {
         "product_id": data.product_id,
         "user_id": user_id,
@@ -36,7 +36,7 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
         "updated_at": _now(),
     }
     try:
-        res = await reviews_col.insert_one(doc)
+        res = await col.insert_one(doc)
         doc["_id"] = res.inserted_id
         return serialize(doc)
     except DuplicateKeyError:
@@ -44,11 +44,13 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
 
 
 async def get_reviews_for_product(product_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
-    cursor = reviews_col.find({"product_id": product_id}).skip(offset).limit(limit).sort("created_at", -1)
+    col = get_reviews_col()
+    cursor = col.find({"product_id": product_id}).skip(offset).limit(limit).sort("created_at", -1)
     return [serialize(d) async for d in cursor]
 
 
 async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_update_others: bool) -> dict:
+    col = get_reviews_col()
     query: dict[str, Any] = {"product_id": product_id}
     if not can_update_others:
         query["user_id"] = user_id
@@ -64,7 +66,7 @@ async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_u
 
     update_fields["updated_at"] = _now()
 
-    doc = await reviews_col.find_one_and_update(
+    doc = await col.find_one_and_update(
         query,
         {"$set": update_fields},
         return_document=ReturnDocument.AFTER,
@@ -75,11 +77,12 @@ async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_u
 
 
 async def delete_review(user_id: str, product_id: str, can_delete_others: bool) -> dict:
+    col = get_reviews_col()
     query: dict[str, Any] = {"product_id": product_id}
     if not can_delete_others:
         query["user_id"] = user_id
 
-    doc = await reviews_col.find_one_and_delete(query)
+    doc = await col.find_one_and_delete(query)
     if not doc:
         raise HTTPException(status_code=404, detail="Review not found")
     return {"status": "deleted", "id": str(doc["_id"])}
