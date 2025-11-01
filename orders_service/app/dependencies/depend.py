@@ -1,58 +1,53 @@
 from typing import Any, Dict
 from uuid import UUID
 
-import jwt  # PyJWT
-from fastapi import HTTPException, Security
+import jwt
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from starlette import status
-
-from app.core.config import settings
-
-# будем переиспользовать и в роутере, чтобы достать сам Bearer токен
-http_bearer = HTTPBearer(auto_error=True)
+from env import SECRET_KEY, ALGORITHM
 
 
-async def get_current_user(
-    creds: HTTPAuthorizationCredentials = Security(http_bearer),
-) -> Dict[str, Any]:
-    token = creds.credentials
+bearer_scheme = HTTPBearer()
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    token = credentials.credentials
     try:
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
-            options={"require": ["exp"]},
-        )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {
+            "id": payload.get("id"),
+            "name": payload.get("sub"),
+            "role_id": payload.get("role_id"),
+            "permissions": payload.get("permissions", []),
+        }
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired",
+            detail="Token expired"
         )
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid token"
         )
 
-    if "id" not in payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token payload missing 'id'",
-        )
 
-    # ВАЖНО: предполагаем, что в токене есть role_id
-    # (его должен проставлять Auth Service при выдаче access-токена)
-    if "role_id" not in payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token payload missing 'role_id'",
-        )
-
-    return payload
+def permission_required(required_permission: str):
+    """Тот же хелпер, что и в catalog_service (может понадобиться и здесь)."""
+    def _checker(user = Depends(get_current_user)):
+        perms = user.get("permissions") or []
+        if required_permission not in perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission '{required_permission}' required"
+            )
+        return True
+    return _checker
 
 
+# can_access_order (логика доступа заказ/пользователь) для orders_service.
 def can_access_order(current_user: Dict[str, Any], order_user_id: UUID) -> None:
-    # проверяем, что текущий юзер валиден
+    """Проверка доступа к заказу: владелец или роль admin (role_id == 1)."""
     try:
         current_user_uuid = (
             current_user["id"]

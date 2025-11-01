@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +9,7 @@ from app.core.kafka import kafka_producer
 from app.db_depends import get_db
 from app.dependencies.depend import (
     get_current_user,
-    http_bearer,
+    bearer_scheme,           # берём тот же HTTPBearer, что использует get_current_user
     can_access_order,
 )
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
@@ -28,8 +28,9 @@ async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    creds: HTTPAuthorizationCredentials = Security(http_bearer),
+    creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
+    # извлекаем «сырой» Bearer для дальнейшего проксирования в downstream сервисы
     bearer_header = f"Bearer {creds.credentials}"
 
     user_uuid = (
@@ -48,7 +49,6 @@ async def create_order(
             target_currency=payload.target_currency,
             auth_header=bearer_header,
         )
-        # Коммит произойдёт при выходе из контекста
 
     # 2. После коммита перечитываем заказ полностью
     order_full = await svc_get_order(db, created_order.id)
@@ -119,7 +119,6 @@ async def delete_order(
     async with db.begin():
         ok = await svc_delete_order(db, order_id)
         if not ok:
-            # На случай гонки: кто-то уже удалил
             raise HTTPException(status_code=404, detail="Order not found")
 
     # 4. Отправляем событие в Kafka
@@ -150,9 +149,6 @@ async def patch_order_status(
 
     # 2. Проверяем права (создатель или админ)
     can_access_order(current_user, order_before.user_id)
-
-    # (опционально можно ввести политику статусов,
-    # например запретить обычным юзерам ставить "delivered" и т.п.)
 
     # 3. Обновляем статус в транзакции
     async with db.begin():
