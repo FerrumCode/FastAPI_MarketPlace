@@ -34,6 +34,7 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
+    # if
     return await get_order_from_db(order_id, db)
 
 

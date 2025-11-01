@@ -10,7 +10,7 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.post("/", response_model=ReviewOut, status_code=201)
-async def add_review(payload: ReviewCreate, user: CurrentUser = None):
+async def add_review(payload: ReviewCreate, user: CurrentUser):
     data = await svc.create_review(user_id=user.id, data=payload)
     # Отправляем событие в Kafka (не критично)
     try:
@@ -32,28 +32,30 @@ async def get_all_reviews(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
-    """
-    Получить все отзывы из БД (пагинация).
-    """
-
     return await svc.get_all_reviews(limit=limit, offset=offset)
 
 
 @router.get("/{product_id}", response_model=list[ReviewOut])
 async def get_reviews(
-        product_id: str,
-        limit: int = Query(50, ge=1, le=200),
-        offset: int = Query(0, ge=0)):
+    product_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0)
+):
     return await svc.get_reviews_for_product(product_id=product_id, limit=limit, offset=offset)
 
 
-@router.patch("/{product_id}", response_model=ReviewOut)
-async def patch_review(product_id: str, payload: ReviewUpdate, user: CurrentUser = None):
-    can = user.role in ("admin", "manager")
-    return await svc.update_review(user_id=user.id, product_id=product_id, data=payload, can_update_others=can)
+@router.get("/by-id/{review_id}", response_model=ReviewOut)
+async def get_review_by_id(review_id: str):
+    return await svc.get_review_by_id(review_id=review_id)
 
 
-@router.delete("/{product_id}")
-async def delete_review(product_id: str, user: CurrentUser = None):
+@router.patch("/{review_id}", response_model=ReviewOut)
+async def patch_review(review_id: str, payload: ReviewUpdate, user: CurrentUser):
     can = user.role in ("admin", "manager")
-    return await svc.delete_review(user_id=user.id, product_id=product_id, can_delete_others=can)
+    return await svc.update_review(user_id=user.id, review_id=review_id, data=payload, can_update_others=can)
+
+
+@router.delete("/{review_id}")
+async def delete_review(review_id: str, user: CurrentUser):
+    can = user.role in ("admin", "manager")
+    return await svc.delete_review(user_id=user.id, review_id=review_id, can_delete_others=can)

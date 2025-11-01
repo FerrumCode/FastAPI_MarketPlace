@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Body, Query
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, text
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
@@ -16,6 +16,8 @@ from app.core.redis import get_redis
 from env import SECRET_KEY, ALGORITHM
 
 
+
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
@@ -25,21 +27,63 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 # =======================
+# Permissions helper
+# =======================
+async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
+    """
+    Возвращает список кодов пермитов для роли (permissions.code) по role_id.
+    Используется таблица связей roles_permissions (role_id, permission_id).
+    """
+    # Явный SQL, чтобы не зависеть от наличия модели association table.
+    res = await db.execute(
+        text(
+            """
+            SELECT p.code
+            FROM permissions AS p
+            JOIN roles_permissions AS rp ON rp.permission_id = p.id
+            WHERE rp.role_id = :role_id
+            ORDER BY p.code
+            """
+        ),
+        {"role_id": role_id},
+    )
+    rows = res.fetchall()
+    return [row[0] for row in rows]
+
+
+# =======================
 # JWT Token Helpers
 # =======================
 async def create_access_token(username: str, user_id: int, role_id: int, expires_delta: timedelta):
+    """
+    Создает access-токен и ДОБАВЛЯЕТ в него permissions роли.
+    Сигнатуру не меняем (чтобы не трогать эндпоинты) — сессию БД берём сами.
+    """
+    # 1) Получаем пермиты роли
+    permissions: list[str] = []
+    try:
+        # используем dependency как генератор
+        async for db in get_db():
+            permissions = await fetch_permissions_by_role_id(db, role_id)
+            break
+    except Exception:
+        # fail-closed — если что-то пошло не так, токен просто без пермитов
+        permissions = []
+
+    # 2) Формируем payload
+    expire = datetime.utcnow() + expires_delta
     payload = {
         'sub': username,
         'id': str(user_id),
         'role_id': role_id,
-        'exp': datetime.utcnow() + expires_delta
+        'permissions': permissions,  # <-- массив кодов пермитов
+        'exp': int(expire.timestamp()),
     }
-    payload['exp'] = int(payload['exp'].timestamp())
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 async def create_refresh_token(user_id: int, username: str, role_id: int, redis_client: redis.Redis):
-    """Создает refresh token и сохраняет его в Redis"""
+    """Создает refresh token и сохраняет его в Redis (без пермитов — как и просил)."""
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": username,
@@ -55,7 +99,9 @@ async def create_refresh_token(user_id: int, username: str, role_id: int, redis_
 # =======================
 # Authentication Helpers
 # =======================
-async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)], username: str, password: str):
+async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)],
+                            username: str,
+                            password: str):
     user = await db.scalar(select(User).where(User.name == username))
     if not user or not bcrypt_context.verify(password, user.password_hash):
         raise HTTPException(
@@ -69,10 +115,9 @@ async def authenticate_user(db: Annotated[AsyncSession, Depends(get_db)], userna
 # =======================
 # Current User Dependency
 # =======================
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    redis_client: redis.Redis = Depends(get_redis)
-):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
+                           redis_client: redis.Redis = Depends(get_redis),
+                           db: Annotated[AsyncSession, Depends(get_db)] = None):
     try:
         # Проверка blacklist в Redis
         if await redis_client.get(f"bl_{token}"):
@@ -85,6 +130,7 @@ async def get_current_user(
         username: str | None = payload.get('sub')
         user_id: int | None = payload.get('id')
         role_id: int | None = payload.get('role_id')
+        permissions: list[str] | None = payload.get('permissions')
 
         if username is None or user_id is None:
             raise HTTPException(
@@ -92,7 +138,14 @@ async def get_current_user(
                 detail='Could not validate user'
             )
 
-        return {'name': username, 'id': user_id, 'role_id': role_id}
+        # Обратная совместимость: если старый токен без permissions — дотянем их из БД
+        if permissions is None and db is not None and role_id is not None:
+            try:
+                permissions = await fetch_permissions_by_role_id(db, role_id)
+            except Exception:
+                permissions = []
+
+        return {'name': username, 'id': user_id, 'role_id': role_id, 'permissions': permissions or []}
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired!")
     except jwt.InvalidTokenError:
@@ -102,8 +155,10 @@ async def get_current_user(
 # =======================
 # Auth Routes
 # =======================
-@router.post('/register', status_code=status.HTTP_201_CREATED)
-async def sign_up(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser):
+@router.post('/register',
+             status_code=status.HTTP_201_CREATED)
+async def register(db: Annotated[AsyncSession, Depends(get_db)],
+                   create_user: CreateUser):
     """Регистрация нового пользователя"""
     result = await db.execute(select(Role).where(Role.name == "user"))
     role = result.scalar_one_or_none()
@@ -121,11 +176,9 @@ async def sign_up(db: Annotated[AsyncSession, Depends(get_db)], create_user: Cre
 
 
 @router.post('/login')
-async def sign_in(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    redis_client: redis.Redis = Depends(get_redis)
-):
+async def login(db: Annotated[AsyncSession, Depends(get_db)],
+                form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+                redis_client: redis.Redis = Depends(get_redis)):
     """Авторизация пользователя и выдача токенов"""
     user = await authenticate_user(db, form_data.username, form_data.password)
 
@@ -138,17 +191,47 @@ async def sign_in(
 
 
 @router.get('/me')
-async def read_current_user(user: dict = Depends(get_current_user)):
-    """Получить данные текущего пользователя"""
-    return user
+async def me(redis_client: Annotated[redis.Redis, Depends(get_redis)],
+             user: dict = Depends(get_current_user)):
+    """Выдает новый access-токен.Refresh-токен берется из Redis (существующий), без перевыдачи."""
+    # 1. Генерим новый access token
+    access_token = await create_access_token(
+        username=user['name'],
+        user_id=user['id'],
+        role_id=user['role_id'],
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    # 2. Достаём существующий refresh token из Redis
+    stored_refresh = await redis_client.get(f"refresh_{user['id']}")
+
+    if stored_refresh is None:
+        # нет валидного refresh токена в Redis
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found or revoked"
+        )
+
+    # redis возвращает bytes — конвертируем в str при необходимости
+    if isinstance(stored_refresh, bytes):
+        refresh_token = stored_refresh.decode()
+    else:
+        refresh_token = stored_refresh
+
+    return {
+        "name": user["name"],
+        "id": user["id"],
+        "role_id": user["role_id"],
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/refresh")
-async def refresh_token(
-    refresh_token: Annotated[str, Body(embed=True)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    redis_client: Annotated[redis.Redis, Depends(get_redis)]
-):
+async def refresh(refresh_token: Annotated[str, Body(embed=True)],
+                  db: Annotated[AsyncSession, Depends(get_db)],
+                  redis_client: Annotated[redis.Redis, Depends(get_redis)]):
     """Обновление access и refresh токенов"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -174,7 +257,12 @@ async def refresh_token(
             raise credentials_exception
 
         stored_refresh = await redis_client.get(f"refresh_{user_id}")
-        if stored_refresh is None or stored_refresh != refresh_token:
+        if stored_refresh is None:
+            raise credentials_exception
+
+        if isinstance(stored_refresh, bytes):
+            stored_refresh = stored_refresh.decode()
+        if stored_refresh != refresh_token:
             raise credentials_exception
 
         access_token = await create_access_token(username, user_id, role_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
@@ -189,7 +277,8 @@ async def refresh_token(
 
 
 @router.post("/blacklisting")
-async def blacklisting(refresh_token: Annotated[str, Body(embed=True)], redis_client: Annotated[redis.Redis, Depends(get_redis)]):
+async def blacklisting(refresh_token: Annotated[str, Body(embed=True)],
+                       redis_client: Annotated[redis.Redis, Depends(get_redis)]):
     """Добавление refresh-токена в blacklist"""
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -203,15 +292,18 @@ async def blacklisting(refresh_token: Annotated[str, Body(embed=True)], redis_cl
 
 
 @router.get("/blacklist")
-async def get_blacklist(redis_client: Annotated[redis.Redis, Depends(get_redis)], prefix: str = Query("bl_refresh_", description="Префикс для ключей blacklist")):
-    """Посмотреть refresh-токены, находящиеся в blacklist"""
+async def blacklist(redis_client: Annotated[redis.Redis, Depends(get_redis)],
+                    prefix: str = Query("bl_refresh_",
+                    description="Префикс для ключей blacklist")):
+    """Посмотреть список refresh-токены, находящиеся в blacklist"""
     keys = await redis_client.keys(f"{prefix}*")
     tokens = [key.decode().replace(prefix, "") for key in keys]
     return {"blacklist": tokens}
 
 
 @router.delete("/blacklist/remove")
-async def remove_from_blacklist(refresh_token: Annotated[str, Body(embed=True)], redis_client: Annotated[redis.Redis, Depends(get_redis)]):
+async def remove(refresh_token: Annotated[str, Body(embed=True)],
+                 redis_client: Annotated[redis.Redis, Depends(get_redis)]):
     """Удалить refresh-токен из blacklist"""
     deleted = await redis_client.delete(f"bl_refresh_{refresh_token}")
     if deleted == 0:

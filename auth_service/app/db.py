@@ -7,10 +7,8 @@ DATABASE_URL = os.getenv(
     "postgresql+asyncpg://user:pass@localhost:5433/auth_db"
 )
 
-# создаём асинхронный движок
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 
-# создаём фабрику сессий
 AsyncSessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,

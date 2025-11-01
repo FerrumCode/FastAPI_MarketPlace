@@ -1,23 +1,34 @@
-import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+# app/db.py
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    # 🔥 fallback для локальных Alembic миграций
-    "postgresql+asyncpg://user:pass@localhost:5435/orders_db"
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+# УДАЛЕНО: from sqlalchemy.orm import declarative_base  (Base теперь централизованно в app.models.base)
+from app.core.config import get_settings
+from app.models.base import Base  # ИЗМЕНЕНО: импортируем общий Base из models/base.py
+
+settings = get_settings()
+
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=False,  # можешь True для отладки
+    future=True,
 )
 
-# создаём асинхронный движок
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
-
-# создаём фабрику сессий
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
+    expire_on_commit=False,  # критично, чтобы объект order не стал "detached"
     class_=AsyncSession,
-    expire_on_commit=False,
     autoflush=False,
-    autocommit=False
+    # autocommit в SQLAlchemy 2.x больше не используется и вызовет TypeError
+    # УДАЛЕНО: autocommit=False
 )
 
-Base = declarative_base()
+
+async def get_db():
+    """
+    Dependency для FastAPI роутов.
+    usage:
+        async def handler(db: AsyncSession = Depends(get_db)):
+            ...
+    """
+    async with AsyncSessionLocal() as session:
+        yield session

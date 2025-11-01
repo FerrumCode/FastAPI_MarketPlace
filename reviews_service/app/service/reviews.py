@@ -4,6 +4,8 @@ from typing import Any, Mapping
 from fastapi import HTTPException
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
+from bson import ObjectId
+from bson.errors import InvalidId
 
 from app.db import get_reviews_col   # <-- вместо "from app.db import reviews_col"
 from app.schemas.review import ReviewCreate, ReviewUpdate
@@ -11,6 +13,13 @@ from app.schemas.review import ReviewCreate, ReviewUpdate
 
 def _now() -> datetime:
     return datetime.utcnow()
+
+
+def _oid(review_id: str) -> ObjectId:
+    try:
+        return ObjectId(review_id)
+    except (InvalidId, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid review id")
 
 
 def serialize(doc: Mapping[str, Any]) -> dict[str, Any]:
@@ -45,22 +54,36 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
 
 async def get_reviews_for_product(product_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
     col = get_reviews_col()
-    cursor = col.find({"product_id": product_id}).skip(offset).limit(limit).sort("created_at", -1)
+    cursor = (
+        col.find({"product_id": product_id})
+        .skip(offset).limit(limit)
+        .sort("created_at", -1)
+    )
     return [serialize(d) async for d in cursor]
 
 
 async def get_all_reviews(limit: int = 50, offset: int = 0) -> list[dict]:
-    """
-    Вернуть все отзывы (пагинация), сортировка по created_at DESC.
-    """
     col = get_reviews_col()
     cursor = col.find({}).skip(offset).limit(limit).sort("created_at", -1)
     return [serialize(d) async for d in cursor]
 
 
-async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_update_others: bool) -> dict:
+async def get_review_by_id(review_id: str) -> dict:
     col = get_reviews_col()
-    query: dict[str, Any] = {"product_id": product_id}
+    try:
+        _id = ObjectId(review_id)
+    except (InvalidId, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid review id")
+
+    doc = await col.find_one({"_id": _id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return serialize(doc)
+
+
+async def update_review(user_id: str, review_id: str, data: ReviewUpdate, can_update_others: bool) -> dict:
+    col = get_reviews_col()
+    query: dict[str, Any] = {"_id": _oid(review_id)}
     if not can_update_others:
         query["user_id"] = user_id
 
@@ -85,9 +108,9 @@ async def update_review(user_id: str, product_id: str, data: ReviewUpdate, can_u
     return serialize(doc)
 
 
-async def delete_review(user_id: str, product_id: str, can_delete_others: bool) -> dict:
+async def delete_review(user_id: str, review_id: str, can_delete_others: bool) -> dict:
     col = get_reviews_col()
-    query: dict[str, Any] = {"product_id": product_id}
+    query: dict[str, Any] = {"_id": _oid(review_id)}
     if not can_delete_others:
         query["user_id"] = user_id
 

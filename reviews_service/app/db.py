@@ -21,9 +21,6 @@ async def connect():
         logger.info("Mongo connected and indexes ensured")
 
 def get_reviews_col():
-    """
-    Возвращает актуальную коллекцию. Бросает ошибку, если connect() ещё не отработал.
-    """
     if reviews_col is None:
         raise RuntimeError("Mongo collection is not initialized yet (startup not finished)")
     return reviews_col

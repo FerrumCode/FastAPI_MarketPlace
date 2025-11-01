@@ -18,7 +18,6 @@ class Permission(Base):
 
     # связи
     roles: Mapped[list["Role"]] = relationship(
-        "Role",
         secondary="roles_permissions",
-        back_populates="permissions"
+        back_populates="permissions" # Имя атрибута обратной связи в Role
     )

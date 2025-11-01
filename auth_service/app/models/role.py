@@ -12,14 +12,11 @@ class Role(Base):
 
     # name TEXT (UNIQUE) # Название роли (user, manager, admin)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-
-    # description TEXT # Описание роли (необязательно)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # связи
+
     users: Mapped[list["User"]] = relationship(back_populates="role")
     permissions: Mapped[list["Permission"]] = relationship(
-        "Permission",
         secondary="roles_permissions",
-        back_populates="roles"
+        back_populates="roles" # Имя атрибута обратной связи в Permission
     )

@@ -7,7 +7,8 @@ from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.core.kafka import send_kafka_event
 from app.crud.products import (get_all_products_from_db, create_product_in_db, update_product_in_db,
                                get_product_from_db, delete_product_form_db)
-from app.dependencies.depend import get_current_user
+from app.dependencies.depend import get_current_user, permission_required
+
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -29,7 +30,9 @@ async def get_product(
     return await get_product_from_db(id, db)
 
 
-@router.post("/", response_model=ProductRead)
+@router.post("/",
+             dependencies=[Depends(permission_required("catalog_service - products - create_product"))],
+             response_model=ProductRead)
 async def create_product(
     data: ProductCreate,
     db: AsyncSession = Depends(get_db),
@@ -38,7 +41,9 @@ async def create_product(
     return await create_product_in_db(data, db)
 
 
-@router.put("/{id}", response_model=ProductRead)
+@router.put("/{id}",
+            dependencies=[Depends(permission_required("catalog_service - products - update_product"))],
+            response_model=ProductRead)
 async def update_product(
     id: str,
     data: ProductUpdate,
@@ -48,7 +53,8 @@ async def update_product(
     return await update_product_in_db(id, data, db)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}",
+               dependencies=[Depends(permission_required("catalog_service - products - delete_product"))])
 async def delete_product(
     id: str,
     db: AsyncSession = Depends(get_db),

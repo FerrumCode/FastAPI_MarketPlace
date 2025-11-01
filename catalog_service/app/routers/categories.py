@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio.client import Redis
-from app.models.category import Category
+
+from app.models.category import Category  # если не используется, можно удалить
 from app.db_depends import get_db
 from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 from app.core.redis import get_redis
@@ -11,7 +12,8 @@ from app.crud.categories import (
     create_category_in_db,
     update_category_in_db,
 )
-from app.dependencies.depend import get_current_user
+from app.dependencies.depend import get_current_user, permission_required
+
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -25,17 +27,21 @@ async def get_all_categories(
     return await get_all_categories_from_db(db, redis)
 
 
-@router.post("/", response_model=CategoryRead)
+@router.post("/",
+             dependencies=[Depends(permission_required("catalog_service - categories - create_category"))],
+             response_model=CategoryRead
+             )
 async def create_category(
     category: CategoryCreate,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
-    user=Depends(get_current_user),
 ):
     return await create_category_in_db(category, db, redis)
 
 
-@router.put("/{id}", response_model=CategoryRead)
+@router.put("/{id}",
+            dependencies=[Depends(permission_required("catalog_service - categories - update_category"))],
+            response_model=CategoryRead)
 async def update_category(
     id: str,
     data: CategoryUpdate,
@@ -46,7 +52,8 @@ async def update_category(
     return await update_category_in_db(id, data, db, redis)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}",
+               dependencies=[Depends(permission_required("catalog_service - categories - delete_category"))],)
 async def delete_category(
     id: str,
     db: AsyncSession = Depends(get_db),
