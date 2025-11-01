@@ -15,11 +15,12 @@ from app.db_depends import get_db
 from app.core.redis import get_redis
 from env import SECRET_KEY, ALGORITHM
 
-
+from app.dependencies.depend import permission_required
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 router = APIRouter(prefix='/auth', tags=['Auth'])
@@ -184,7 +185,8 @@ async def login(db: Annotated[AsyncSession, Depends(get_db)],
     return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}
 
 
-@router.get('/me')
+@router.get('/me',
+            dependencies=[Depends(permission_required("can_me"))])
 async def me(redis_client: Annotated[redis.Redis, Depends(get_redis)],
              user: dict = Depends(get_current_user)):
     """Выдает новый access-токен.Refresh-токен берется из Redis (существующий), без перевыдачи."""
@@ -222,7 +224,8 @@ async def me(redis_client: Annotated[redis.Redis, Depends(get_redis)],
     }
 
 
-@router.post("/refresh")
+@router.post("/refresh",
+             dependencies=[Depends(permission_required("can_refresh"))])
 async def refresh(refresh_token: Annotated[str, Body(embed=True)],
                   db: Annotated[AsyncSession, Depends(get_db)],
                   redis_client: Annotated[redis.Redis, Depends(get_redis)]):
@@ -270,7 +273,8 @@ async def refresh(refresh_token: Annotated[str, Body(embed=True)],
         raise credentials_exception
 
 
-@router.post("/blacklisting")
+@router.post("/blacklisting",
+             dependencies=[Depends(permission_required("can_blacklisting"))])
 async def blacklisting(refresh_token: Annotated[str, Body(embed=True)],
                        redis_client: Annotated[redis.Redis, Depends(get_redis)]):
     """Добавление refresh-токена в blacklist"""
@@ -285,7 +289,8 @@ async def blacklisting(refresh_token: Annotated[str, Body(embed=True)],
     return {"detail": "Refresh token blacklisted successfully"}
 
 
-@router.get("/blacklist")
+@router.get("/blacklist",
+            dependencies=[Depends(permission_required("can_blacklist"))])
 async def blacklist(redis_client: Annotated[redis.Redis, Depends(get_redis)],
                     prefix: str = Query("bl_refresh_",
                     description="Префикс для ключей blacklist")):
@@ -295,7 +300,8 @@ async def blacklist(redis_client: Annotated[redis.Redis, Depends(get_redis)],
     return {"blacklist": tokens}
 
 
-@router.delete("/blacklist/remove")
+@router.delete("/blacklist/remove",
+               dependencies=[Depends(permission_required("can_remove"))])
 async def remove(refresh_token: Annotated[str, Body(embed=True)],
                  redis_client: Annotated[redis.Redis, Depends(get_redis)]):
     """Удалить refresh-токен из blacklist"""
