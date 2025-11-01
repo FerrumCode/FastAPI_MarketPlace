@@ -19,7 +19,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/get_users",
-            dependencies=[Depends(permission_required("auth_service - users - get_users"))])
+            dependencies=[Depends(permission_required("can_get_users"))])
 async def get_users(
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: dict = Depends(verify_admin_and_get_user),
@@ -30,7 +30,7 @@ async def get_users(
 
 
 @router.get("/get_user_info/{name}",
-            dependencies=[Depends(permission_required("auth_service - users - get_user_info"))])
+            dependencies=[Depends(permission_required("can_get_user_info"))])
 async def get_user_info(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
@@ -41,7 +41,7 @@ async def get_user_info(
 
 
 @router.post("/create_user",
-             dependencies=[Depends(permission_required("auth_service - users - create_user"))],
+             dependencies=[Depends(permission_required("can_create_user"))],
              status_code=status.HTTP_201_CREATED)
 async def create_user(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -54,7 +54,7 @@ async def create_user(
 
 
 @router.put("/update_user_by_name/{name}",
-            dependencies=[Depends(permission_required("auth_service - users - update_user_by_name"))],
+            dependencies=[Depends(permission_required("can_update_user_by_name"))],
             status_code=200)
 async def update_user_by_name(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -68,7 +68,7 @@ async def update_user_by_name(
 
 
 @router.delete("/delete_user/{name}",
-               dependencies=[Depends(permission_required("auth_service - users - delete_user"))])
+               dependencies=[Depends(permission_required("can_delete_user"))])
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,

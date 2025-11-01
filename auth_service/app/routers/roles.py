@@ -18,7 +18,7 @@ router = APIRouter(prefix="/role", tags=["Role"])
 
 
 @router.get("/get_roles",
-            dependencies=[Depends(permission_required("auth_service - role - get_roles"))])
+            dependencies=[Depends(permission_required("can_get_roles"))])
 async def get_roles(
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: dict = Depends(verify_admin_and_get_user)
@@ -27,7 +27,7 @@ async def get_roles(
 
 
 @router.post("/create_role",
-             dependencies=[Depends(permission_required("auth_service - role - create_role"))],
+             dependencies=[Depends(permission_required("can_create_role"))],
              status_code=status.HTTP_201_CREATED)
 async def create_role(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -38,7 +38,7 @@ async def create_role(
 
 
 @router.put("/update_role/{role_name}",
-            dependencies=[Depends(permission_required("auth_service - role - update_role"))],
+            dependencies=[Depends(permission_required("can_update_role"))],
             status_code=status.HTTP_200_OK)
 async def update_role(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -50,7 +50,7 @@ async def update_role(
 
 
 @router.delete("/delete_role/{name}",
-               dependencies=[Depends(permission_required("auth_service - role - delete_role"))])
+               dependencies=[Depends(permission_required("can_delete_role"))])
 async def delete_role(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
