@@ -18,7 +18,7 @@ router = APIRouter(prefix="/permission", tags=["Permission"])
 
 
 @router.get("/get_permissions",
-            dependencies=[Depends(permission_required("auth_service - permission - get_permissions"))])
+            dependencies=[Depends(permission_required("can_get_permissions"))])
 async def get_permissions(
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: dict = Depends(verify_admin_and_get_user)
@@ -27,7 +27,7 @@ async def get_permissions(
 
 
 @router.post("/create_permission",
-             dependencies=[Depends(permission_required("auth_service - permission - create_permission"))],
+             dependencies=[Depends(permission_required("can_create_permission"))],
              status_code=status.HTTP_201_CREATED)
 async def create_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -38,7 +38,7 @@ async def create_permission(
 
 
 @router.put("/change_permission/{permission_code}",
-            dependencies=[Depends(permission_required("auth_service - permission - change_permission"))],
+            dependencies=[Depends(permission_required("can_change_permission"))],
             status_code=status.HTTP_200_OK)
 async def change_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -50,7 +50,7 @@ async def change_permission(
 
 
 @router.delete("/delete_permission/{code}",
-               dependencies=[Depends(permission_required("auth_service - permission - delete_permission"))])
+               dependencies=[Depends(permission_required("can_delete_permission"))])
 async def delete_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     code: str,
