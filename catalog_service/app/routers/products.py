@@ -31,7 +31,7 @@ async def get_product(
 
 
 @router.post("/",
-             dependencies=[Depends(permission_required("catalog_service - products - create_product"))],
+             dependencies=[Depends(permission_required("can_create_product"))],
              response_model=ProductRead)
 async def create_product(
     data: ProductCreate,
@@ -42,7 +42,7 @@ async def create_product(
 
 
 @router.put("/{id}",
-            dependencies=[Depends(permission_required("catalog_service - products - update_product"))],
+            dependencies=[Depends(permission_required("can_update_product"))],
             response_model=ProductRead)
 async def update_product(
     id: str,
@@ -54,7 +54,7 @@ async def update_product(
 
 
 @router.delete("/{id}",
-               dependencies=[Depends(permission_required("catalog_service - products - delete_product"))])
+               dependencies=[Depends(permission_required("can_delete_product"))])
 async def delete_product(
     id: str,
     db: AsyncSession = Depends(get_db),

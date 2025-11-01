@@ -30,10 +30,7 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 # Permissions helper
 # =======================
 async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
-    """
-    Возвращает список кодов пермитов для роли (permissions.code) по role_id.
-    Используется таблица связей roles_permissions (role_id, permission_id).
-    """
+    """Возвращает список кодов пермитов для роли (permissions.code) по role_id. Из связной таблицы"""
     # Явный SQL, чтобы не зависеть от наличия модели association table.
     res = await db.execute(
         text(
@@ -55,10 +52,7 @@ async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[s
 # JWT Token Helpers
 # =======================
 async def create_access_token(username: str, user_id: int, role_id: int, expires_delta: timedelta):
-    """
-    Создает access-токен и ДОБАВЛЯЕТ в него permissions роли.
-    Сигнатуру не меняем (чтобы не трогать эндпоинты) — сессию БД берём сами.
-    """
+    """Создает access-токен и ДОБАВЛЯЕТ в него permissions роли."""
     # 1) Получаем пермиты роли
     permissions: list[str] = []
     try:

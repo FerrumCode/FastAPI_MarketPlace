@@ -28,7 +28,7 @@ async def get_all_categories(
 
 
 @router.post("/",
-             dependencies=[Depends(permission_required("catalog_service - categories - create_category"))],
+             dependencies=[Depends(permission_required("can_create_category"))],
              response_model=CategoryRead
              )
 async def create_category(
@@ -40,7 +40,7 @@ async def create_category(
 
 
 @router.put("/{id}",
-            dependencies=[Depends(permission_required("catalog_service - categories - update_category"))],
+            dependencies=[Depends(permission_required("can_update_category"))],
             response_model=CategoryRead)
 async def update_category(
     id: str,
@@ -53,7 +53,7 @@ async def update_category(
 
 
 @router.delete("/{id}",
-               dependencies=[Depends(permission_required("catalog_service - categories - delete_category"))],)
+               dependencies=[Depends(permission_required("can_delete_category"))],)
 async def delete_category(
     id: str,
     db: AsyncSession = Depends(get_db),
