@@ -9,6 +9,7 @@ from app.core.kafka import kafka_producer
 from app.db_depends import get_db
 from app.dependencies.depend import (
     authentication_get_current_user,
+    permission_required,
     bearer_scheme,           # берём тот же HTTPBearer, что использует get_current_user
     can_access_order,
 )
@@ -23,7 +24,9 @@ from app.service.orders import (
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@router.post("/", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
+@router.post("/",
+             dependencies=[Depends(permission_required("can_create_order"))],
+             response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
@@ -84,7 +87,9 @@ async def create_order(
     return order_full
 
 
-@router.get("/{order_id}", response_model=OrderOut)
+@router.get("/{order_id}",
+            dependencies=[Depends(permission_required("can_get_order"))],
+            response_model=OrderOut)
 async def get_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -101,7 +106,9 @@ async def get_order(
     return order
 
 
-@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{order_id}",
+               dependencies=[Depends(permission_required("can_delete_order"))],
+               status_code=status.HTTP_204_NO_CONTENT)
 async def delete_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -135,7 +142,9 @@ async def delete_order(
     return None
 
 
-@router.patch("/{order_id}", response_model=OrderOut)
+@router.patch("/{order_id}",
+              dependencies=[Depends(permission_required("can_patch_order_status"))],
+              response_model=OrderOut)
 async def patch_order_status(
     order_id: UUID,
     payload: OrderStatusPatch,

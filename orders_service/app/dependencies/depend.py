@@ -35,7 +35,7 @@ def authentication_get_current_user(credentials: HTTPAuthorizationCredentials = 
 
 # Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Тот же хелпер, что и в catalog_service (может понадобиться и здесь)."""
+    """Проверка наличия точного пермита в токене"""
     def _checker(user = Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
@@ -49,7 +49,7 @@ def permission_required(required_permission: str):
 
 # can_access_order (логика доступа заказ/пользователь) для orders_service.
 def can_access_order(current_user: Dict[str, Any], order_user_id: UUID) -> None:
-    """Проверка доступа к заказу: владелец или роль admin (role_id == 1)."""
+    """проверка — ТОЛЬКО на владение. Админ попадёт по пермитам на уровне эндпоинта."""
     try:
         current_user_uuid = (
             current_user["id"]
@@ -62,12 +62,9 @@ def can_access_order(current_user: Dict[str, Any], order_user_id: UUID) -> None:
             detail="Invalid user id in token",
         )
 
-    user_role_id = current_user.get("role_id")
-    user_is_admin = (user_role_id == 1)
-    user_is_owner = (current_user_uuid == order_user_id)
-
-    if not user_is_admin and not user_is_owner:
+    # только владелец может пройти эту проверку
+    if current_user_uuid != order_user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not allowed to access this order",
+            detail="Not allowed to access this order (owner only)",
         )

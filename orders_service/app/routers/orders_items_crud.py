@@ -10,12 +10,14 @@ from app.crud.order_items import (
     update_order_item_in_db,
     delete_order_item_from_db,
 )
-from app.dependencies.depend import authentication_get_current_user
+from app.dependencies.depend import authentication_get_current_user, permission_required
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
 
-@router.get("/", response_model=list[OrderItemRead])
+@router.get("/",
+            dependencies=[Depends(permission_required("can_get_all_orders"))],
+            response_model=list[OrderItemRead])
 async def get_all_order_items(
     db: AsyncSession = Depends(get_db),
     user=Depends(authentication_get_current_user),
@@ -23,7 +25,9 @@ async def get_all_order_items(
     return await get_all_order_items_from_db(db)
 
 
-@router.get("/{id}", response_model=OrderItemRead)
+@router.get("/{id}",
+            dependencies=[Depends(permission_required("can_get_order_item"))],
+            response_model=OrderItemRead)
 async def get_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
@@ -32,7 +36,9 @@ async def get_order_item(
     return await get_order_item_from_db(id, db)
 
 
-@router.post("/", response_model=OrderItemRead)
+@router.post("/",
+             dependencies=[Depends(permission_required("can_create_order_item"))],
+             response_model=OrderItemRead)
 async def create_order_item(
     data: OrderItemCreate,
     db: AsyncSession = Depends(get_db),
@@ -41,7 +47,9 @@ async def create_order_item(
     return await create_order_item_in_db(data, db)
 
 
-@router.put("/{id}", response_model=OrderItemRead)
+@router.put("/{id}",
+            dependencies=[Depends(permission_required("can_update_order_item"))],
+            response_model=OrderItemRead)
 async def update_order_item(
     id: str,
     data: OrderItemUpdate,
@@ -51,7 +59,8 @@ async def update_order_item(
     return await update_order_item_in_db(id, data, db)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}",
+               dependencies=[Depends(permission_required("can_delete_order_item"))])
 async def delete_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
