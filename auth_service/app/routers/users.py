@@ -11,7 +11,6 @@ from app.crud.users import (
     update_user_by_name,
     delete_user,
 )
-from app.dependencies.auth import verify_admin_and_get_user, check_blacklist
 from app.dependencies.depend import permission_required
 
 
@@ -22,8 +21,6 @@ router = APIRouter(prefix="/users", tags=["Users"])
             dependencies=[Depends(permission_required("can_get_users"))])
 async def get_users(
     db: Annotated[AsyncSession, Depends(get_db)],
-    admin_user: dict = Depends(verify_admin_and_get_user),
-    token: str = Depends(check_blacklist),
 ):
     """Получить список всех пользователей (доступно только админу)"""
     return await get_all_users(db)
@@ -34,7 +31,6 @@ async def get_users(
 async def get_user_info(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    admin_user: dict = Depends(verify_admin_and_get_user),
 ):
     """Получить информацию о пользователе по имени"""
     return await get_user(db, name)
@@ -47,7 +43,6 @@ async def create_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     create_user_data: CreateUser,
     role_id: int,
-    admin_user: dict = Depends(verify_admin_and_get_user),
 ):
     """Создать нового пользователя (админ-доступ)"""
     return await create_user_in_db(db, create_user_data, role_id)
@@ -61,7 +56,6 @@ async def update_user_by_name(
     name: str,
     update_user_data: UpdateUser,
     role_id: int,
-    admin_user: dict = Depends(verify_admin_and_get_user),
 ):
     """Обновить данные пользователя по имени (админ-доступ)"""
     return await update_user_by_name(db, name, update_user_data, role_id)
@@ -72,7 +66,6 @@ async def update_user_by_name(
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
-    admin_user: dict = Depends(verify_admin_and_get_user),
 ):
     """Удалить пользователя (админ-доступ)"""
     return await delete_user(db, name)

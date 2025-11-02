@@ -4,7 +4,6 @@ from typing import Annotated
 
 from app.db_depends import get_db
 from app.schemas.permission import CreatePermission
-from app.dependencies.auth import verify_admin_and_get_user
 from app.crud.permissions import (
     get_permissions_from_db,
     create_permission_in_db,
@@ -21,7 +20,6 @@ router = APIRouter(prefix="/permission", tags=["Permission"])
             dependencies=[Depends(permission_required("can_get_permissions"))])
 async def get_permissions(
     db: Annotated[AsyncSession, Depends(get_db)],
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await get_permissions_from_db(db)
 
@@ -32,7 +30,6 @@ async def get_permissions(
 async def create_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     new_permission: CreatePermission,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await create_permission_in_db(db, new_permission)
 
@@ -44,7 +41,6 @@ async def change_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     permission_code: str,
     permission_data: CreatePermission,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await change_permission_in_db(db, permission_code, permission_data)
 
@@ -54,6 +50,5 @@ async def change_permission(
 async def delete_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     code: str,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await delete_permission_in_db(db, code)

@@ -5,7 +5,8 @@ from env import SECRET_KEY, ALGORITHM
 
 bearer_scheme = HTTPBearer()
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+# Аутентификация - для всех сервисов(кроме Auth) через токен HTTPBearer()
+def authentication_get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -27,9 +28,10 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_
         )
 
 
+# Аутентификация + Авторизация
 def permission_required(required_permission: str):
     """Проверка наличия точного пермита в токене"""
-    def _checker(user = Depends(get_current_user)):
+    def _checker(user = Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
             raise HTTPException(
