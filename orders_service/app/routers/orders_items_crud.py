@@ -10,7 +10,7 @@ from app.crud.order_items import (
     update_order_item_in_db,
     delete_order_item_from_db,
 )
-from app.dependencies.depend import get_current_user
+from app.dependencies.depend import authentication_get_current_user
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 @router.get("/", response_model=list[OrderItemRead])
 async def get_all_order_items(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(authentication_get_current_user),
 ):
     return await get_all_order_items_from_db(db)
 
@@ -27,7 +27,7 @@ async def get_all_order_items(
 async def get_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(authentication_get_current_user),
 ):
     return await get_order_item_from_db(id, db)
 
@@ -36,7 +36,7 @@ async def get_order_item(
 async def create_order_item(
     data: OrderItemCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(authentication_get_current_user),
 ):
     return await create_order_item_in_db(data, db)
 
@@ -46,7 +46,7 @@ async def update_order_item(
     id: str,
     data: OrderItemUpdate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(authentication_get_current_user),
 ):
     return await update_order_item_in_db(id, data, db)
 
@@ -55,6 +55,6 @@ async def update_order_item(
 async def delete_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(authentication_get_current_user),
 ):
     return await delete_order_item_from_db(id, db)

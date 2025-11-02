@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.kafka import kafka_producer
 from app.db_depends import get_db
 from app.dependencies.depend import (
-    get_current_user,
+    authentication_get_current_user,
     bearer_scheme,           # берём тот же HTTPBearer, что использует get_current_user
     can_access_order,
 )
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(authentication_get_current_user),
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     # извлекаем «сырой» Bearer для дальнейшего проксирования в downstream сервисы
@@ -88,7 +88,7 @@ async def create_order(
 async def get_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(authentication_get_current_user),
 ):
     # достаём заказ
     order = await svc_get_order(db, order_id)
@@ -105,7 +105,7 @@ async def get_order(
 async def delete_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(authentication_get_current_user),
 ):
     # 1. Получаем заказ до удаления, чтобы знать владельца
     order = await svc_get_order(db, order_id)
@@ -140,7 +140,7 @@ async def patch_order_status(
     order_id: UUID,
     payload: OrderStatusPatch,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(authentication_get_current_user),
 ):
     # 1. Получаем текущее состояние заказа (до апдейта)
     order_before = await svc_get_order(db, order_id)
