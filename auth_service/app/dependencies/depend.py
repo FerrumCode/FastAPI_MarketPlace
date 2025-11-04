@@ -39,6 +39,7 @@ def authentication_and_get_current_user(token: str = Depends(bearer_scheme)):
             "id": payload.get("id"),
             "name": payload.get("sub"),
             "role_id": payload.get("role_id"),
+            "role_name": payload.get("role_name"),
             "permissions": payload.get("permissions", []),
         }
     except jwt.ExpiredSignatureError:

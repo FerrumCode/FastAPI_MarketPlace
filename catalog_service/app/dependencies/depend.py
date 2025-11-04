@@ -6,7 +6,9 @@ from env import SECRET_KEY, ALGORITHM
 bearer_scheme = HTTPBearer()
 
 # Аутентификация - для всех сервисов(кроме Auth) через токен HTTPBearer()
-def authentication_get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+def authentication_get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -14,6 +16,7 @@ def authentication_get_current_user(credentials: HTTPAuthorizationCredentials = 
             "id": payload.get("id"),
             "name": payload.get("sub"),
             "role_id": payload.get("role_id"),
+            "role_name": payload.get("role_name"),
             "permissions": payload.get("permissions", []),
         }
     except jwt.ExpiredSignatureError:

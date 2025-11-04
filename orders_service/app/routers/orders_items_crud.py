@@ -10,7 +10,7 @@ from app.crud.order_items import (
     update_order_item_in_db,
     delete_order_item_from_db,
 )
-from app.dependencies.depend import authentication_get_current_user, permission_required
+from app.dependencies.depend import authentication_get_current_user, permission_required, user_owner_access_checker
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
@@ -32,6 +32,7 @@ async def get_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
     user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
     return await get_order_item_from_db(id, db)
 
@@ -55,6 +56,7 @@ async def update_order_item(
     data: OrderItemUpdate,
     db: AsyncSession = Depends(get_db),
     user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
     return await update_order_item_in_db(id, data, db)
 
@@ -65,5 +67,6 @@ async def delete_order_item(
     id: str,
     db: AsyncSession = Depends(get_db),
     user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
     return await delete_order_item_from_db(id, db)

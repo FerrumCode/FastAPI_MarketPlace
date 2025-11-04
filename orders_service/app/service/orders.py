@@ -27,13 +27,8 @@ async def create_order(
     target_currency: str,
     auth_header: str | None = None,
 ) -> Order:
-    """
-    Создаёт заказ:
-    - тянет каждый product из Catalog Service с пробрасыванием токена
-    - считает cart_total
-    - сохраняет Order и OrderItem[]
-    """
-
+    """Создаёт заказ:тянет каждый product из Catalog Service с пробрасыванием токена,
+    считает cart_total, сохраняет Order и OrderItem[]"""
     if not items_in:
         raise HTTPException(
             status_code=400,

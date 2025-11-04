@@ -11,7 +11,7 @@ from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
     bearer_scheme,           # берём тот же HTTPBearer, что использует get_current_user
-    can_access_order,
+    user_owner_access_checker,
 )
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
 from app.service.orders import (
@@ -93,16 +93,12 @@ async def create_order(
 async def get_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
-    # достаём заказ
+    # Достаём заказ (проверка прав уже выполнена зависимостью)
     order = await svc_get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
-    # проверяем права (создатель или админ)
-    can_access_order(current_user, order.user_id)
-
     return order
 
 
@@ -112,23 +108,15 @@ async def get_order(
 async def delete_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
-    # 1. Получаем заказ до удаления, чтобы знать владельца
-    order = await svc_get_order(db, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    # 2. Проверяем права
-    can_access_order(current_user, order.user_id)
-
-    # 3. Удаляем заказ в транзакции
+    # Удаляем заказ в транзакции (если его нет — вернём 404)
     async with db.begin():
         ok = await svc_delete_order(db, order_id)
         if not ok:
             raise HTTPException(status_code=404, detail="Order not found")
 
-    # 4. Отправляем событие в Kafka
+    # Отправляем событие в Kafka
     await kafka_producer.send(
         settings.KAFKA_ORDER_TOPIC,
         {
@@ -149,23 +137,15 @@ async def patch_order_status(
     order_id: UUID,
     payload: OrderStatusPatch,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
-    # 1. Получаем текущее состояние заказа (до апдейта)
-    order_before = await svc_get_order(db, order_id)
-    if not order_before:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    # 2. Проверяем права (создатель или админ)
-    can_access_order(current_user, order_before.user_id)
-
-    # 3. Обновляем статус в транзакции
+    # Обновляем статус в транзакции
     async with db.begin():
         order_after = await svc_update_order_status(db, order_id, payload.status)
         if not order_after:
             raise HTTPException(status_code=404, detail="Order not found")
 
-    # 4. Шлём событие в Kafka
+    # Шлём событие в Kafka
     await kafka_producer.send(
         settings.KAFKA_ORDER_TOPIC,
         {
@@ -176,6 +156,8 @@ async def patch_order_status(
         key=str(order_id),
     )
 
-    # 5. Возвращаем свежее состояние (с items)
+    # Возвращаем свежее состояние (с items)
     fresh = await svc_get_order(db, order_id)
+    if not fresh:
+        raise HTTPException(status_code=404, detail="Order not found")
     return fresh

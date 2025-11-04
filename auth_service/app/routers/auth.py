@@ -30,7 +30,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # =======================
-# Permissions helper
+# Permissions / Roles helpers
 # =======================
 async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
     """Возвращает список кодов пермитов для роли (permissions.code) по role_id. Из связной таблицы"""
@@ -50,27 +50,37 @@ async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[s
     return [row[0] for row in rows]
 
 
+async def fetch_role_name_by_role_id(db: AsyncSession, role_id: int) -> str | None:
+    """Возвращает name роли по role_id."""
+    res = await db.execute(select(Role.name).where(Role.id == role_id))
+    return res.scalar_one_or_none()
+
+
 # =======================
 # JWT Token Helpers
 # =======================
 async def create_access_token(
     username: str, user_id: int, role_id: int, expires_delta: timedelta
 ):
-    """Создает access-токен и ДОБАВЛЯЕТ в него permissions роли."""
+    """Создает access-токен, ДОБАВЛЯЯ в него permissions и role_name."""
     permissions: list[str] = []
+    role_name: str | None = None
     try:
-        # Получим permissions роли через общий get_db()
+        # Получим permissions и role_name через общий get_db()
         async for db in get_db():
             permissions = await fetch_permissions_by_role_id(db, role_id)
+            role_name = await fetch_role_name_by_role_id(db, role_id)
             break
     except Exception:
         permissions = []
+        role_name = None
 
     expire = datetime.utcnow() + expires_delta
     payload = {
         "sub": username,
         "id": str(user_id),
         "role_id": role_id,
+        "role_name": role_name,  # <--- добавлено
         "permissions": permissions,
         "exp": int(expire.timestamp()),
     }
@@ -80,12 +90,22 @@ async def create_access_token(
 async def create_refresh_token(
     user_id: int, username: str, role_id: int, redis_client: redis.Redis
 ):
-    """Создает refresh token и сохраняет его в Redis."""
+    """Создает refresh token, сохраняет его в Redis и ДОБАВЛЯЕТ role_name в payload."""
+    # Узнаём role_name (по аналогии с access токеном)
+    role_name: str | None = None
+    try:
+        async for db in get_db():
+            role_name = await fetch_role_name_by_role_id(db, role_id)
+            break
+    except Exception:
+        role_name = None
+
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": username,
         "id": str(user_id),
         "role_id": role_id,
+        "role_name": role_name,  # <--- добавлено
         "exp": int(expire.timestamp()),
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
