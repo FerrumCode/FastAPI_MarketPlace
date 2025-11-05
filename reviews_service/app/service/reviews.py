@@ -7,7 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from app.db import get_reviews_col   # <-- вместо "from app.db import reviews_col"
+from app.db import get_reviews_col
 from app.schemas.review import ReviewCreate, ReviewUpdate
 
 

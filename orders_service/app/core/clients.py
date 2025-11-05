@@ -2,7 +2,8 @@ from uuid import UUID
 import httpx
 from fastapi import HTTPException
 
-from .config import settings
+#from .config import settings
+from env import CATALOG_SERVICE_URL
 
 
 async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dict:
@@ -25,7 +26,7 @@ async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dic
         headers["Authorization"] = auth_header
 
     async with httpx.AsyncClient(
-        base_url=settings.CATALOG_SERVICE_URL,
+        base_url=CATALOG_SERVICE_URL,
         timeout=5.0,
     ) as client:
         try:

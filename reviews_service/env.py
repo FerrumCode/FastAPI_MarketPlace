@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-# Загружаем переменные из .env
 load_dotenv()
 
 # ======================
@@ -43,7 +42,7 @@ KAFKA_ORDER_TOPIC = os.getenv("KAFKA_ORDER_TOPIC", "order_events")
 KAFKA_REVIEW_TOPIC = os.getenv("KAFKA_REVIEW_TOPIC", "review_events")
 
 # ======================
-# MongoDB (для Reviews Service)
+# MongoDB
 # ======================
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://reviews_mongo:27017/reviews_db")
 MONGO_DB = os.getenv("MONGO_DB", "reviews_db")

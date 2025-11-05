@@ -1,7 +1,7 @@
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING, DESCENDING
-from app.core.config import settings
+from env import MONGO_URL
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ reviews_col = None
 async def connect():
     global _client, _db, reviews_col
     if _client is None:
-        _client = AsyncIOMotorClient(settings.MONGO_URL)
+        _client = AsyncIOMotorClient(MONGO_URL)
         _db = _client.get_default_database()
         reviews_col = _db.get_collection("reviews")
         # Индексы

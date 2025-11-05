@@ -3,7 +3,6 @@ from app.schemas.review import ReviewCreate, ReviewOut, ReviewUpdate
 from app.service import reviews as svc
 from app.core.kafka import kafka_producer
 
-# НОВОЕ: подключаем такие же зависимости, как в orders_service
 from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
@@ -20,13 +19,13 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
     "/",
     response_model=ReviewOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(permission_required("can_add_review"))],  # НОВОЕ
+    dependencies=[Depends(permission_required("can_add_review"))],
 )
 async def add_review(
     payload: ReviewCreate,
-    current_user=Depends(authentication_get_current_user),  # НОВОЕ
+    current_user=Depends(authentication_get_current_user),
 ):
-    data = await svc.create_review(user_id=str(current_user["id"]), data=payload)  # изменено под current_user
+    data = await svc.create_review(user_id=str(current_user["id"]), data=payload)
 
     # Отправляем событие в Kafka (не критично)
     try:
@@ -68,13 +67,13 @@ async def get_review_by_id(review_id: str):
 @router.patch(
     "/{review_id}",
     response_model=ReviewOut,
-    dependencies=[Depends(permission_required("can_patch_review"))],  # НОВОЕ
+    dependencies=[Depends(permission_required("can_patch_review"))],
 )
 async def patch_review(
     review_id: str,
     payload: ReviewUpdate,
-    current_user=Depends(authentication_get_current_user),              # НОВОЕ
-    _: None = Depends(user_owner_access_checker),                       # НОВОЕ — проверка владельца для role 'user'
+    current_user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
     # can_update_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
     return await svc.update_review(
@@ -87,12 +86,12 @@ async def patch_review(
 
 @router.delete(
     "/{review_id}",
-    dependencies=[Depends(permission_required("can_delete_review"))],  # НОВОЕ
+    dependencies=[Depends(permission_required("can_delete_review"))],
 )
 async def delete_review(
     review_id: str,
-    current_user=Depends(authentication_get_current_user),              # НОВОЕ
-    _: None = Depends(user_owner_access_checker),                       # НОВОЕ — проверка владельца для role 'user'
+    current_user=Depends(authentication_get_current_user),
+    _: None = Depends(user_owner_access_checker),
 ):
     # can_delete_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
     return await svc.delete_review(

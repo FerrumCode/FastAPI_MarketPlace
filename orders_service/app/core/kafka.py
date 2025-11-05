@@ -4,7 +4,8 @@ from typing import Any, Optional
 
 from aiokafka import AIOKafkaProducer
 
-from .config import settings
+#from .config import settings
+from env import KAFKA_BROKER
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class KafkaProducer:
     async def start(self):
         if self._producer is None:
             self._producer = AIOKafkaProducer(
-                bootstrap_servers=settings.KAFKA_BROKER,
+                bootstrap_servers=KAFKA_BROKER,
                 value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
             )
             await self._producer.start()

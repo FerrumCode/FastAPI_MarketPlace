@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+#from app.core.config import settings
 from app.core.kafka import kafka_producer
 from app.db_depends import get_db
 from app.dependencies.depend import (
@@ -20,6 +20,7 @@ from app.service.orders import (
     delete_order as svc_delete_order,
     update_order_status as svc_update_order_status,
 )
+from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -48,7 +49,7 @@ async def create_order(
             db,
             user_id=user_uuid,
             items_in=[item.model_dump() for item in payload.items],
-            currency_base=settings.CURRENCY_BASE,
+            currency_base=CURRENCY_BASE,
             target_currency=payload.target_currency,
             auth_header=bearer_header,
         )
@@ -60,13 +61,13 @@ async def create_order(
 
     # 3. Публикуем событие для воркера
     await kafka_producer.send(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {
             "event": "ORDER_CREATED",
             "order_id": str(order_full.id),
             "user_id": str(order_full.user_id),
             "target_currency": payload.target_currency,
-            "currency_base": settings.CURRENCY_BASE,
+            "currency_base": CURRENCY_BASE,
             "items": [
                 {
                     "product_id": str(i.product_id),
@@ -118,7 +119,7 @@ async def delete_order(
 
     # Отправляем событие в Kafka
     await kafka_producer.send(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {
             "event": "ORDER_UPDATED",
             "order_id": str(order_id),
@@ -147,7 +148,7 @@ async def patch_order_status(
 
     # Шлём событие в Kafka
     await kafka_producer.send(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {
             "event": "ORDER_UPDATED",
             "order_id": str(order_id),

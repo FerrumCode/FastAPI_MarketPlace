@@ -11,10 +11,12 @@ from sqlalchemy.orm import selectinload
 
 from app.core.clients import fetch_product
 from app.core.kafka import send_kafka_event
-from app.core.config import settings
+#from app.core.config import settings
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
+
+from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE
 
 
 def _money(x: Decimal) -> Decimal:
@@ -96,13 +98,13 @@ async def create_order_in_db(data: OrderCreate, user_id: UUID, db: AsyncSession)
     fresh = (await db.execute(q)).scalar_one()
 
     await send_kafka_event(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {
             "event": "ORDER_CREATED",
             "order_id": str(fresh.id),
             "user_id": str(fresh.user_id),
             "target_currency": data.target_currency,
-            "currency_base": settings.CURRENCY_BASE,
+            "currency_base": CURRENCY_BASE,
             "items": [
                 {"product_id": str(i.product_id), "quantity": i.quantity, "unit_price": float(i.unit_price)}
                 for i in fresh.items
@@ -134,7 +136,7 @@ async def update_order_status_in_db(order_id: UUID, data: OrderStatusPatch, db: 
     fresh = (await db.execute(q2)).scalar_one()
 
     await send_kafka_event(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {"event": "ORDER_UPDATED", "order_id": str(order_id), "status": data.status},
     )
 
@@ -152,7 +154,7 @@ async def delete_order_from_db(order_id: UUID, db: AsyncSession) -> dict:
     await db.commit()
 
     await send_kafka_event(
-        settings.KAFKA_ORDER_TOPIC,
+        KAFKA_ORDER_TOPIC,
         {"event": "ORDER_UPDATED", "order_id": str(order_id), "status": "deleted"},
     )
 

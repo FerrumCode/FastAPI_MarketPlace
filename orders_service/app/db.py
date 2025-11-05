@@ -2,13 +2,14 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 # УДАЛЕНО: from sqlalchemy.orm import declarative_base  (Base теперь централизованно в app.models.base)
-from app.core.config import get_settings
+#from app.core.config import get_settings
 from app.models.base import Base  # ИЗМЕНЕНО: импортируем общий Base из models/base.py
+from env import DATABASE_URL
 
-settings = get_settings()
+#settings = get_settings()
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     echo=False,  # можешь True для отладки
     future=True,
 )

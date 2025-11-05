@@ -6,11 +6,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from env import SECRET_KEY, ALGORITHM
 
-# --- добавлено для зависимости проверки владельца ---
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db_depends import get_db
 from app.service.orders import get_order as svc_get_order
-# ----------------------------------------------------
+
 
 bearer_scheme = HTTPBearer()
 

@@ -1,11 +1,3 @@
-# Adapted from orders_service/app/dependencies/depend.py
-# Изменения помечены как:  # CHANGED: ...  (а удалённые импорты/аргументы указаны в этом блоке комментариев)
-#
-# REMOVED: from app.db_depends import get_db
-# REMOVED: from sqlalchemy.ext.asyncio import AsyncSession
-# REMOVED: import и использование svc_get_order(...) — заменено на svc_get_review_by_id(...)
-# REMOVED: параметр db: AsyncSession в user_owner_access_checker
-
 from typing import Any, Dict
 from uuid import UUID
 
@@ -13,13 +5,9 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# CHANGED: вместо `from env import SECRET_KEY, ALGORITHM` берём из settings
-from app.core.config import settings  # CHANGED
-SECRET_KEY = settings.SECRET_KEY      # CHANGED
-ALGORITHM = settings.ALGORITHM        # CHANGED
+from app.service.reviews import get_review_by_id as svc_get_review_by_id
+from env import SECRET_KEY, ALGORITHM
 
-# CHANGED: берём сервис получения отзыва по id из review-сервиса
-from app.service.reviews import get_review_by_id as svc_get_review_by_id  # CHANGED
 
 bearer_scheme = HTTPBearer()
 
@@ -52,7 +40,7 @@ def authentication_get_current_user(
 
 # Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Проверка наличия точного пермита в токене"""
+    """Проверка наличия пермита в токене"""
     def _checker(user=Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
@@ -65,16 +53,15 @@ def permission_required(required_permission: str):
 
 
 # Зависимость: проверка доступа владельца для роли 'user'.
-# CHANGED: адаптировано под reviews — принимаем review_id и сверяем владельца отзыва
-async def user_owner_access_checker(  # CHANGED: сигнатура/назначение
-    review_id: str,  # CHANGED: вместо order_id: UUID
+async def user_owner_access_checker(
+    review_id: str,
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ) -> None:
     role_name = (current_user.get("role_name") or "").strip().lower()
     if role_name != "user":
-        return  # доступ разрешён без доп. проверок для не-'user' ролей (как в оригинале)
+        return  # доступ разрешён без доп. проверок для не-'user' ролей
 
-    # Проверяем корректность UUID пользователя из токена
+
     try:
         current_user_uuid = (
             current_user["id"]
@@ -87,15 +74,15 @@ async def user_owner_access_checker(  # CHANGED: сигнатура/назнач
             detail="Invalid user id in token",
         )
 
-    # CHANGED: получаем отзыв и сверяем владельца
-    review = await svc_get_review_by_id(review_id)  # CHANGED
+    # получаем отзыв и сверяем владельца
+    review = await svc_get_review_by_id(review_id)
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")  # CHANGED
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
 
     # допускаем объект или dict
     review_user_id_raw = getattr(review, "user_id", None) or review.get("user_id")
     if review_user_id_raw is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")  # CHANGED
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
 
     try:
         review_user_uuid = review_user_id_raw if isinstance(review_user_id_raw, UUID) else UUID(str(review_user_id_raw))
@@ -104,14 +91,14 @@ async def user_owner_access_checker(  # CHANGED: сигнатура/назнач
         if str(review_user_id_raw) != str(current_user_uuid):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not allowed to access this review (owner only, role 'user')",  # CHANGED
+                detail="Not allowed to access this review (owner only, role 'user')",
             )
         return
 
     if review_user_uuid != current_user_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not allowed to access this review (owner only, role 'user')",  # CHANGED
+            detail="Not allowed to access this review (owner only, role 'user')",
         )
 
     # return none — при успехе просто пропускаем дальше

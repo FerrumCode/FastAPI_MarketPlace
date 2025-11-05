@@ -15,7 +15,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -31,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Reviews Service", version="0.1.0", lifespan=lifespan)
 
-# CORS (по надобности)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=True,

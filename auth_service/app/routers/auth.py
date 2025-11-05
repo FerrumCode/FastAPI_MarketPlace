@@ -13,13 +13,13 @@ from app.models.role import Role
 from app.schemas.user import CreateUser
 from app.db_depends import get_db
 from app.core.redis import get_redis
-from env import SECRET_KEY, ALGORITHM
-
 from app.dependencies.depend import (
     permission_required,
     ensure_refresh_token_not_blacklisted,
     authentication_and_get_current_user
 )
+
+from env import SECRET_KEY, ALGORITHM
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30

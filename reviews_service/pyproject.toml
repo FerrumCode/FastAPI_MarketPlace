@@ -23,7 +23,7 @@ passlib = "==1.7.4"      # фиксируем старую стабильную 
 bcrypt = "==4.0.1"       # фиксируем совместимую версию
 python-multipart = "^0.0.20"
 pyjwt = "^2.10.1"
-redis = "^5.0.8"         # ✅ добавляем поддержку Redis asyncio API
+redis = "^5.0.8"
 aiokafka = "^0.12.0"
 motor = "^3.7.1"
 pymongo = "^4.15.3"
