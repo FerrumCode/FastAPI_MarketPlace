@@ -1,4 +1,3 @@
-# reviews_service/app/core/kafka.py
 import json
 import logging
 from typing import Optional

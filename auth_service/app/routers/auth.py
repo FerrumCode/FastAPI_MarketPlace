@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Body, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Body, Query, Request  # <-- изменено: добавлен Request
 from sqlalchemy import select, insert, text
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,16 +182,21 @@ async def login(
 @router.get("/me",
             dependencies=[Depends(permission_required("can_me"))])
 async def me(
+    request: Request,  # <-- изменено: принимаем Request, чтобы достать текущий access-токен из заголовка
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
     user: dict = Depends(authentication_and_get_current_user),
 ):
-    """Выдаёт новый access-токен. Refresh-токен берётся из Redis (существующий), без перевыдачи."""
-    access_token = await create_access_token(
-        username=user["name"],
-        user_id=user["id"],
-        role_id=user["role_id"],
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
+    """Выдаёт текущие access/refresh токены без перевыдачи."""  # <-- изменено: обновлено описание
+    # --- начало изменений ---
+    # Берём существующий access-токен из заголовка Authorization, НЕ создавая новый
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing or invalid",
+        )
+    access_token = auth_header.split(" ", 1)[1].strip()
+    # --- конец изменений ---
 
     stored_refresh = await redis_client.get(f"refresh_{user['id']}")
     if stored_refresh is None:
@@ -206,7 +211,7 @@ async def me(
         "name": user["name"],
         "id": user["id"],
         "role_id": user["role_id"],
-        "access_token": access_token,
+        "access_token": access_token,  # <-- изменено: возвращаем существующий access-токен
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
