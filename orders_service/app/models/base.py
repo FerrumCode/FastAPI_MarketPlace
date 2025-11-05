@@ -1,5 +1,3 @@
-# app/models/base.py
-
 import uuid
 from datetime import datetime
 from typing import Annotated
@@ -11,10 +9,6 @@ from sqlalchemy.sql import func  # ИЗМЕНЕНО: добавил func для 
 
 
 class Base(DeclarativeBase):
-    """
-    Общий declarative base для всех моделей.
-    db.py и все модели должны импортировать ИМЕННО это Base.
-    """
     pass
 
 
@@ -31,6 +25,6 @@ created_ts = Annotated[
     datetime,
     mapped_column(
         TIMESTAMP(timezone=True),
-        server_default=func.now()  # ИЗМЕНЕНО: раньше было default=datetime.utcnow (naive)
+        server_default=func.now()
     )
 ]

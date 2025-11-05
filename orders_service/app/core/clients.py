@@ -1,26 +1,11 @@
 from uuid import UUID
 import httpx
 from fastapi import HTTPException
-
-#from .config import settings
 from env import CATALOG_SERVICE_URL
 
 
 async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dict:
-    """
-    Получить информацию о товаре из Catalog Service.
-
-    ВАЖНО:
-    - Catalog Service у тебя защищён тем же JWT.
-      Значит мы обязаны пробросить Authorization: Bearer <token>,
-      иначе получаем 401/403 ("Not authenticated").
-
-    Поведение:
-    - 404 -> бросаем HTTPException(404)
-    - любой другой код >=400 -> RuntimeError с деталями
-    - сетевые ошибки -> RuntimeError
-    """
-
+    """Получить информацию о товаре из Catalog Service."""
     headers = {}
     if auth_header:
         headers["Authorization"] = auth_header

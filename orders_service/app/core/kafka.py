@@ -1,11 +1,9 @@
 import json
 import logging
 from typing import Any, Optional
-
 from aiokafka import AIOKafkaProducer
-
-#from .config import settings
 from env import KAFKA_BROKER
+
 
 logger = logging.getLogger(__name__)
 

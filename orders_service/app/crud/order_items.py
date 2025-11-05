@@ -8,7 +8,6 @@ from app.models.order_item import OrderItem
 from app.models.order import Order
 from app.schemas.order_item import OrderItemCreate, OrderItemRead, OrderItemUpdate
 from app.core.kafka import send_kafka_event
-#from app.core.config import settings
 from env import KAFKA_ORDER_TOPIC
 
 

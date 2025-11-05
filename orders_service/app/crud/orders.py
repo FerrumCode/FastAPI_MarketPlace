@@ -11,7 +11,6 @@ from sqlalchemy.orm import selectinload
 
 from app.core.clients import fetch_product
 from app.core.kafka import send_kafka_event
-#from app.core.config import settings
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch

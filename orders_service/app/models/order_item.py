@@ -1,13 +1,11 @@
-# app/models/order_item.py
-
 import uuid
-from decimal import Decimal  # ИЗМЕНЕНО: тип цены -> Decimal
+from decimal import Decimal
 
 from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base  # ИЗМЕНЕНО: раньше импортировал Base из app.db
+from app.models.base import Base
 
 
 class OrderItem(Base):

@@ -1,5 +1,3 @@
-# app/models/order.py
-
 import uuid
 from datetime import datetime
 from decimal import Decimal  # ИЗМЕНЕНО: использовать Decimal для денег
