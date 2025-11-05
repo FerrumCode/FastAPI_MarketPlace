@@ -1,9 +1,6 @@
 import jwt
 from fastapi import Depends, HTTPException, status, Body
-# REMOVED: HTTPBearer, HTTPAuthorizationCredentials
-# from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-# ADDED:
-from fastapi.security import OAuth2PasswordBearer  # CHANGED
+from fastapi.security import OAuth2PasswordBearer
 
 import redis.asyncio as redis
 
@@ -18,10 +15,7 @@ async def ensure_refresh_token_not_blacklisted(
     refresh_token: str = Body(embed=True),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    """
-    Проверяет, не отозван ли refresh-токен (ключ bl_refresh_<token> в Redis).
-    Подключайте как dependency к эндпоинтам, где в теле присутствует refresh_token.
-    """
+    """Проверяет, не отозван ли refresh-токен (ключ bl_refresh_<token> в Redis)."""
     if await redis_client.get(f"bl_refresh_{refresh_token}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,10 +50,7 @@ def authentication_and_get_current_user(token: str = Depends(bearer_scheme)):
 
 # Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """
-    Декоратор-зависимость для проверки наличия точного пермита в токене.
-    Берёт список прав из клайма permissions access-токена (get_current_user).
-    """
+    """Декоратор-зависимость для проверки наличия пермита в токене."""
     def _checker(user=Depends(authentication_and_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
