@@ -1,17 +1,33 @@
-import logging
-from fastapi import APIRouter, Query
-from app.dependencies.auth import CurrentUser, require_role
+from fastapi import APIRouter, Query, Depends, status
 from app.schemas.review import ReviewCreate, ReviewOut, ReviewUpdate
 from app.service import reviews as svc
 from app.core.kafka import kafka_producer
+
+# НОВОЕ: подключаем такие же зависимости, как в orders_service
+from app.dependencies.depend import (
+    authentication_get_current_user,
+    permission_required,
+    user_owner_access_checker,
+)
+
+import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
-@router.post("/", response_model=ReviewOut, status_code=201)
-async def add_review(payload: ReviewCreate, user: CurrentUser):
-    data = await svc.create_review(user_id=user.id, data=payload)
+@router.post(
+    "/",
+    response_model=ReviewOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(permission_required("can_add_review"))],  # НОВОЕ
+)
+async def add_review(
+    payload: ReviewCreate,
+    current_user=Depends(authentication_get_current_user),  # НОВОЕ
+):
+    data = await svc.create_review(user_id=str(current_user["id"]), data=payload)  # изменено под current_user
+
     # Отправляем событие в Kafka (не критично)
     try:
         await kafka_producer.send_review_created({
@@ -49,13 +65,38 @@ async def get_review_by_id(review_id: str):
     return await svc.get_review_by_id(review_id=review_id)
 
 
-@router.patch("/{review_id}", response_model=ReviewOut)
-async def patch_review(review_id: str, payload: ReviewUpdate, user: CurrentUser):
-    can = user.role in ("admin", "manager")
-    return await svc.update_review(user_id=user.id, review_id=review_id, data=payload, can_update_others=can)
+@router.patch(
+    "/{review_id}",
+    response_model=ReviewOut,
+    dependencies=[Depends(permission_required("can_patch_review"))],  # НОВОЕ
+)
+async def patch_review(
+    review_id: str,
+    payload: ReviewUpdate,
+    current_user=Depends(authentication_get_current_user),              # НОВОЕ
+    _: None = Depends(user_owner_access_checker),                       # НОВОЕ — проверка владельца для role 'user'
+):
+    # can_update_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
+    return await svc.update_review(
+        user_id=str(current_user["id"]),
+        review_id=review_id,
+        data=payload,
+        can_update_others=True,
+    )
 
 
-@router.delete("/{review_id}")
-async def delete_review(review_id: str, user: CurrentUser):
-    can = user.role in ("admin", "manager")
-    return await svc.delete_review(user_id=user.id, review_id=review_id, can_delete_others=can)
+@router.delete(
+    "/{review_id}",
+    dependencies=[Depends(permission_required("can_delete_review"))],  # НОВОЕ
+)
+async def delete_review(
+    review_id: str,
+    current_user=Depends(authentication_get_current_user),              # НОВОЕ
+    _: None = Depends(user_owner_access_checker),                       # НОВОЕ — проверка владельца для role 'user'
+):
+    # can_delete_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
+    return await svc.delete_review(
+        user_id=str(current_user["id"]),
+        review_id=review_id,
+        can_delete_others=True,
+    )
