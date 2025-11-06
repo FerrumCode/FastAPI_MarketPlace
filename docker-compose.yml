@@ -158,7 +158,7 @@ services:
     depends_on:
       orders_db:
         condition: service_healthy
-      kafka:                 # <=== ДОБАВЛЕНО
+      kafka:
         condition: service_healthy
     env_file:
       - ./orders_service/.env
@@ -278,6 +278,94 @@ services:
     networks:
       - backend_network
 
+  # ======================
+  # CELERY WORKER STACK
+  # ======================
+  celery_redis:
+    image: redis:7
+    container_name: celery_redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - celery_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - backend_network
+
+  celery_worker_service_build:
+    build:
+      context: ./celery_worker_service
+      dockerfile: Dockerfile
+    image: julyberries/celery-worker:latest
+    env_file:
+      - ./celery_worker_service/.env
+    volumes:
+      - ./celery_worker_service:/app
+    networks:
+      - backend_network
+
+  celery_worker:
+    image: julyberries/celery-worker:latest
+    container_name: celery_worker
+    command: >
+      celery -A app.celery_app:celery_app worker
+      --loglevel=INFO
+      --pool=solo
+      -Q default
+      -n worker@%h
+    env_file:
+      - ./celery_worker_service/.env
+    depends_on:
+      celery_redis:
+        condition: service_healthy
+      orders_db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "9101:9101"
+    restart: always
+    networks:
+      - backend_network
+
+  celery_beat:
+    image: julyberries/celery-worker:latest
+    container_name: celery_beat
+    command: >
+      celery -A app.celery_app:celery_app beat
+      -s /tmp/celerybeat-schedule
+      --loglevel=INFO
+    env_file:
+      - ./celery_worker_service/.env
+    depends_on:
+      celery_redis:
+        condition: service_healthy
+    restart: always
+    networks:
+      - backend_network
+
+  celery_kafka_bridge:
+    image: julyberries/celery-worker:latest
+    container_name: celery_kafka_bridge
+    command: python -m app.services.kafka_consumer
+    env_file:
+      - ./celery_worker_service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      celery_redis:
+        condition: service_healthy
+    ports:
+      - "9102:9102"
+    restart: always
+    networks:
+      - backend_network
+
 # ======================
 # VOLUMES & NETWORK
 # ======================
@@ -291,6 +379,7 @@ volumes:
   orders_data:
   orders_pgadmin_data:
   reviews_mongo_data:
+  celery_redis_data:
 
 networks:
   backend_network:
