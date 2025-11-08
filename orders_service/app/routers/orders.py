@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -10,7 +11,6 @@ from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
     bearer_scheme,
-    user_owner_access_checker,
 )
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
 from app.service.orders import (
@@ -88,11 +88,19 @@ async def create_order(
 async def get_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: None = Depends(user_owner_access_checker),
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
 ):
     order = await svc_get_order(db, order_id)
     if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    user_id = UUID(current_user["id"])
+    perms = current_user.get("permissions") or []
+    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this order (owner only)",
+        )
     return order
 
 
@@ -102,12 +110,22 @@ async def get_order(
 async def delete_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: None = Depends(user_owner_access_checker),
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
 ):
+    order = await svc_get_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    user_id = UUID(current_user["id"])
+    perms = current_user.get("permissions") or []
+    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this order (owner only)",
+        )
+
     async with db.begin():
-        ok = await svc_delete_order(db, order_id)
-        if not ok:
-            raise HTTPException(status_code=404, detail="Order not found")
+        await svc_delete_order(db, order_id)
 
     await kafka_producer.send(
         KAFKA_ORDER_TOPIC,
@@ -118,7 +136,6 @@ async def delete_order(
         },
         key=str(order_id),
     )
-
     return None
 
 
@@ -129,12 +146,22 @@ async def patch_order_status(
     order_id: UUID,
     payload: OrderStatusPatch,
     db: AsyncSession = Depends(get_db),
-    _: None = Depends(user_owner_access_checker),
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
 ):
+    order = await svc_get_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    user_id = UUID(current_user["id"])
+    perms = current_user.get("permissions") or []
+    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this order (owner only)",
+        )
+
     async with db.begin():
-        order_after = await svc_update_order_status(db, order_id, payload.status)
-        if not order_after:
-            raise HTTPException(status_code=404, detail="Order not found")
+        await svc_update_order_status(db, order_id, payload.status)
 
     await kafka_producer.send(
         KAFKA_ORDER_TOPIC,
