@@ -27,7 +27,6 @@ async def add_review(
 ):
     data = await svc.create_review(user_id=str(current_user["id"]), data=payload)
 
-    # Отправляем событие в Kafka (не критично)
     try:
         await kafka_producer.send_review_created({
             "event": "REVIEW_CREATED",
@@ -75,7 +74,6 @@ async def patch_review(
     current_user=Depends(authentication_get_current_user),
     _: None = Depends(user_owner_access_checker),
 ):
-    # can_update_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
     return await svc.update_review(
         user_id=str(current_user["id"]),
         review_id=review_id,
@@ -93,7 +91,6 @@ async def delete_review(
     current_user=Depends(authentication_get_current_user),
     _: None = Depends(user_owner_access_checker),
 ):
-    # can_delete_others ставим True — доступ для чужих отзывов уже отсечён зависимостью user_owner_access_checker
     return await svc.delete_review(
         user_id=str(current_user["id"]),
         review_id=review_id,

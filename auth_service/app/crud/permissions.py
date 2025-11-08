@@ -22,7 +22,6 @@ async def get_permissions_from_db(db: AsyncSession):
 
 async def create_permission_in_db(db: AsyncSession, create_permission: CreatePermission):
     try:
-        # Проверяем, существует ли разрешение с таким же кодом
         result = await db.execute(
             select(Permission).where(Permission.code == create_permission.code)
         )
@@ -34,7 +33,6 @@ async def create_permission_in_db(db: AsyncSession, create_permission: CreatePer
                 detail=f"Разрешение с кодом '{create_permission.code}' уже существует"
             )
 
-        # Создаем новое разрешение
         new_permission = Permission(
             code=create_permission.code,
             description=create_permission.description
@@ -66,7 +64,6 @@ async def change_permission_in_db(
     permission_data: CreatePermission
 ):
     try:
-        # Проверяем, существует ли разрешение
         result = await db.execute(
             select(Permission).where(Permission.code == permission_code)
         )
@@ -78,7 +75,6 @@ async def change_permission_in_db(
                 detail=f"Разрешение с кодом '{permission_code}' не найдено"
             )
 
-        # Проверяем, не существует ли уже разрешения с новым кодом
         if permission_data.code != permission_code:
             result = await db.execute(
                 select(Permission).where(Permission.code == permission_data.code)
@@ -91,7 +87,6 @@ async def change_permission_in_db(
                     detail=f"Разрешение с кодом '{permission_data.code}' уже существует"
                 )
 
-        # Обновляем разрешение
         await db.execute(
             update(Permission)
             .where(Permission.code == permission_code)

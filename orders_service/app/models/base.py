@@ -5,7 +5,7 @@ from typing import Annotated
 from sqlalchemy import TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
-from sqlalchemy.sql import func  # ИЗМЕНЕНО: добавил func для server_default
+from sqlalchemy.sql import func
 
 
 class Base(DeclarativeBase):

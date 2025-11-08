@@ -27,20 +27,16 @@ async def create_order(
     target_currency: str,
     auth_header: str | None = None,
 ) -> Order:
-    """Создаёт заказ:тянет каждый product из Catalog Service с пробрасыванием токена,
-    считает cart_total, сохраняет Order и OrderItem[]"""
     if not items_in:
         raise HTTPException(
             status_code=400,
             detail="Order must contain at least one item",
         )
 
-    # product_id из запроса -> UUID
     product_ids: list[UUID] = [
         UUID(str(item["product_id"])) for item in items_in
     ]
 
-    # параллельно стучимся в Catalog Service за каждым товаром
     products = await asyncio.gather(
         *[
             fetch_product(pid, auth_header=auth_header)
@@ -49,7 +45,6 @@ async def create_order(
         return_exceptions=True,
     )
 
-    # мапа product_id -> Decimal(price)
     prices: dict[UUID, Decimal] = {}
     for idx, p in enumerate(products):
         if isinstance(p, Exception):
@@ -69,7 +64,6 @@ async def create_order(
 
         prices[pid] = price
 
-    # считаем корзину и готовим OrderItem[]
     cart_total = Decimal("0.00")
     order_items: list[OrderItem] = []
 
@@ -91,7 +85,7 @@ async def create_order(
             OrderItem(
                 product_id=pid,
                 quantity=qty,
-                unit_price=float(unit_price),  # в БД float, считаем в Decimal
+                unit_price=float(unit_price),
             )
         )
 
@@ -102,12 +96,12 @@ async def create_order(
         status="created",
         delivery_price=float(Decimal("0.00")),
         cart_price=float(cart_total),
-        total_price=float(cart_total),  # воркер потом добавит доставку и конвертацию
+        total_price=float(cart_total),
         items=order_items,
     )
 
     session.add(order)
-    await session.flush()    # получили id
+    await session.flush()
     await session.refresh(order)
 
     return order

@@ -84,7 +84,7 @@ async def create_order_in_db(data: OrderCreate, user_id: UUID, db: AsyncSession)
     order = Order(
         user_id=user_id,
         status="created",
-        delivery_price=float(Decimal("0.00")),
+        delivery_price=0.0,
         cart_price=float(cart_total),
         total_price=float(cart_total),
         items=order_items,

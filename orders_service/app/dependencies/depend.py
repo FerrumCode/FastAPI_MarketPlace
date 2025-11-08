@@ -14,7 +14,6 @@ from app.service.orders import get_order as svc_get_order
 bearer_scheme = HTTPBearer()
 
 
-# Аутентификация - для всех сервисов(кроме Auth) через токен HTTPBearer()
 def authentication_get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
@@ -40,9 +39,7 @@ def authentication_get_current_user(
         )
 
 
-# Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Проверка наличия точного пермита в токене"""
     def _checker(user=Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
@@ -54,7 +51,6 @@ def permission_required(required_permission: str):
     return _checker
 
 
-# Зависимость: проверка доступа владельца для роли 'user'. При нарушении прав/отсутствии заказа бросает HTTPException.
 async def user_owner_access_checker(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -62,30 +58,15 @@ async def user_owner_access_checker(
 ) -> None:
     role_name = (current_user.get("role_name") or "").strip().lower()
     if role_name != "user":
-        return  # доступ разрешён без доп. проверок для не-'user' ролей
+        return
 
-    # Проверяем корректность UUID пользователя из токена
-    try:
-        current_user_uuid = (
-            current_user["id"]
-            if isinstance(current_user["id"], UUID)
-            else UUID(str(current_user["id"]))
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user id in token",
-        )
-
-    # Получаем заказ и сверяем владельца
+    user_uuid = UUID(str(current_user["id"]))
     order = await svc_get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
-    if order.user_id != current_user_uuid:
+    if order.user_id != user_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only, role 'user')",
         )
-
-    # return none, просто пропускаем дальше при успехе иначе проброс ошибки.

@@ -5,7 +5,7 @@ from env import SECRET_KEY, ALGORITHM
 
 bearer_scheme = HTTPBearer()
 
-# Аутентификация - для всех сервисов(кроме Auth) через токен HTTPBearer()
+
 def authentication_get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
@@ -31,9 +31,7 @@ def authentication_get_current_user(
         )
 
 
-# Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Проверка наличия точного пермита в токене"""
     def _checker(user = Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:

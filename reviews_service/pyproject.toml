@@ -1,17 +1,14 @@
 [tool.poetry]
-name = "auth-service-poetry"
+name = "celery-worker-service"
 version = "0.1.0"
-description = ""
+description = "Julyberries Celery Worker Service"
 authors = ["Ferrum <rezonbox@gmail.com>"]
 license = "MIT"
-readme = "README.md"
-
-packages = [
-    { include = "app" }
-]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
 python = "^3.13"
+
 fastapi = "^0.116.1"
 uvicorn = { extras = ["standard"], version = "^0.35.0" }
 slugify = "^0.0.1"
@@ -19,16 +16,18 @@ sqlalchemy = "^2.0.42"
 asyncpg = "^0.30"
 alembic = "^1.16.4"
 psycopg2-binary = "^2.9.10"
-passlib = "==1.7.4"      # фиксируем старую стабильную версию
-bcrypt = "==4.0.1"       # фиксируем совместимую версию
+passlib = "==1.7.4"
+bcrypt = "==4.0.1"
 python-multipart = "^0.0.20"
 pyjwt = "^2.10.1"
 redis = "^5.0.8"
 aiokafka = "^0.12.0"
-motor = "^3.7.1"
-pymongo = "^4.15.3"
-pydantic-settings = "^2.11.0"
-prometheus-fastapi-instrumentator = "^7.1.0"
+celery = "^5.4.0"
+httpx = "^0.27.2"
+pydantic = "^2.9.2"
+prometheus-client = "^0.20.0"
+structlog = "^24.4.0"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"

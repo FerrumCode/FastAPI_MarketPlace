@@ -35,9 +35,8 @@ class OrderItem(Base):
     unit_price: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False
-    )  # ИЗМЕНЕНО: тип -> Decimal
+    )
 
-    # связь обратно к Order.items
     order: Mapped["Order"] = relationship(
         back_populates="items"
     )

@@ -17,14 +17,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     await connect()
     try:
         await kafka_producer.start()
     except Exception as e:
         logger.warning("Kafka producer not started: %s", e)
     yield
-    # Shutdown
+
     await kafka_producer.stop()
     await disconnect()
 
@@ -38,7 +37,6 @@ app.add_middleware(
 )
 
 
-# Метрики
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 

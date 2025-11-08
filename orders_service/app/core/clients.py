@@ -5,7 +5,6 @@ from env import CATALOG_SERVICE_URL
 
 
 async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dict:
-    """Получить информацию о товаре из Catalog Service."""
     headers = {}
     if auth_header:
         headers["Authorization"] = auth_header
@@ -17,18 +16,15 @@ async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dic
         try:
             resp = await client.get(f"/products/{product_id}", headers=headers)
         except httpx.RequestError as e:
-            # Проблема с сетью / сервис не отвечает
             raise RuntimeError(f"connection error to Catalog Service: {e}") from e
 
     if resp.status_code == 404:
-        # В каталоге реально нет такого товара
         raise HTTPException(
             status_code=404,
             detail=f"Product {product_id} not found in Catalog Service",
         )
 
     if resp.status_code >= 400:
-        # Например 401/403 -> "Not authenticated"
         raise RuntimeError(
             f"Catalog Service error {resp.status_code}: {resp.text}"
         )

@@ -17,26 +17,24 @@ from app.dependencies.depend import permission_required
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/get_users",
+@router.get("/",
             dependencies=[Depends(permission_required("can_get_users"))])
 async def get_users(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Получить список всех пользователей (доступно только админу)"""
     return await get_all_users(db)
 
 
-@router.get("/get_user_info/{name}",
+@router.get("/{name}",
             dependencies=[Depends(permission_required("can_get_user_info"))])
 async def get_user_info(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
 ):
-    """Получить информацию о пользователе по имени"""
     return await get_user(db, name)
 
 
-@router.post("/create_user",
+@router.post("/",
              dependencies=[Depends(permission_required("can_create_user"))],
              status_code=status.HTTP_201_CREATED)
 async def create_user(
@@ -44,11 +42,10 @@ async def create_user(
     create_user_data: CreateUser,
     role_id: int,
 ):
-    """Создать нового пользователя (админ-доступ)"""
     return await create_user_in_db(db, create_user_data, role_id)
 
 
-@router.put("/update_user_by_name/{name}",
+@router.put("/{name}",
             dependencies=[Depends(permission_required("can_update_user_by_name"))],
             status_code=200)
 async def update_user_by_name(
@@ -57,15 +54,13 @@ async def update_user_by_name(
     update_user_data: UpdateUser,
     role_id: int,
 ):
-    """Обновить данные пользователя по имени (админ-доступ)"""
     return await update_user_by_name(db, name, update_user_data, role_id)
 
 
-@router.delete("/delete_user/{name}",
+@router.delete("/{name}",
                dependencies=[Depends(permission_required("can_delete_user"))])
 async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
 ):
-    """Удалить пользователя (админ-доступ)"""
     return await delete_user(db, name)

@@ -3,15 +3,12 @@ import logging
 from typing import Optional
 
 from aiokafka import AIOKafkaProducer
-# Простые импорты значений из env.py (ожидается файл reviews_service/env.py)
 from env import KAFKA_BROKER, KAFKA_REVIEW_TOPIC
 
 logger = logging.getLogger(__name__)
 
 
 class KafkaProducer:
-    """Обёртка над AIOKafkaProducer"""
-
     def __init__(self) -> None:
         self._producer: Optional[AIOKafkaProducer] = None
         self._starting: bool = False
@@ -55,7 +52,6 @@ class KafkaProducer:
             value = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             await self._producer.send_and_wait(KAFKA_REVIEW_TOPIC, value=value)
         except Exception as e:
-            # Не валим сервис, просто помечаем продьюсер как неготовый
             logger.warning("Kafka send failed: %s", e)
             self._producer = None
 

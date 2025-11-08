@@ -12,7 +12,6 @@ from env import SECRET_KEY, ALGORITHM
 bearer_scheme = HTTPBearer()
 
 
-# Аутентификация - для всех сервисов(кроме Auth) через токен HTTPBearer()
 def authentication_get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
@@ -38,9 +37,7 @@ def authentication_get_current_user(
         )
 
 
-# Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Проверка наличия пермита в токене"""
     def _checker(user=Depends(authentication_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:
@@ -52,15 +49,13 @@ def permission_required(required_permission: str):
     return _checker
 
 
-# Зависимость: проверка доступа владельца для роли 'user'.
 async def user_owner_access_checker(
     review_id: str,
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ) -> None:
     role_name = (current_user.get("role_name") or "").strip().lower()
     if role_name != "user":
-        return  # доступ разрешён без доп. проверок для не-'user' ролей
-
+        return
 
     try:
         current_user_uuid = (
@@ -74,12 +69,10 @@ async def user_owner_access_checker(
             detail="Invalid user id in token",
         )
 
-    # получаем отзыв и сверяем владельца
     review = await svc_get_review_by_id(review_id)
     if not review:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
 
-    # допускаем объект или dict
     review_user_id_raw = getattr(review, "user_id", None) or review.get("user_id")
     if review_user_id_raw is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
@@ -87,7 +80,6 @@ async def user_owner_access_checker(
     try:
         review_user_uuid = review_user_id_raw if isinstance(review_user_id_raw, UUID) else UUID(str(review_user_id_raw))
     except Exception:
-        # если в БД хранится не-UUID — сравним как строки
         if str(review_user_id_raw) != str(current_user_uuid):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -100,5 +92,3 @@ async def user_owner_access_checker(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
         )
-
-    # return none — при успехе просто пропускаем дальше

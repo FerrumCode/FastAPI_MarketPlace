@@ -16,7 +16,7 @@ from app.dependencies.depend import permission_required
 router = APIRouter(prefix="/role", tags=["Role"])
 
 
-@router.get("/get_roles",
+@router.get("/",
             dependencies=[Depends(permission_required("can_get_roles"))])
 async def get_roles(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -24,7 +24,7 @@ async def get_roles(
     return await get_roles_from_db(db)
 
 
-@router.post("/create_role",
+@router.post("/",
              dependencies=[Depends(permission_required("can_create_role"))],
              status_code=status.HTTP_201_CREATED)
 async def create_role(
@@ -34,7 +34,7 @@ async def create_role(
     return await create_role_in_db(db, create_role_data)
 
 
-@router.put("/update_role/{role_name}",
+@router.put("/{role_name}",
             dependencies=[Depends(permission_required("can_update_role"))],
             status_code=status.HTTP_200_OK)
 async def update_role(
@@ -45,7 +45,7 @@ async def update_role(
     return await update_role_in_db(db, role_name, role_data)
 
 
-@router.delete("/delete_role/{name}",
+@router.delete("/{name}",
                dependencies=[Depends(permission_required("can_delete_role"))])
 async def delete_role(
     db: Annotated[AsyncSession, Depends(get_db)],

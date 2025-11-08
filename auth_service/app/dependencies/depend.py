@@ -15,7 +15,6 @@ async def ensure_refresh_token_not_blacklisted(
     refresh_token: str = Body(embed=True),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    """Проверяет, не отозван ли refresh-токен (ключ bl_refresh_<token> в Redis)."""
     if await redis_client.get(f"bl_refresh_{refresh_token}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -24,9 +23,7 @@ async def ensure_refresh_token_not_blacklisted(
     return True
 
 
-# Аутентификация - через OAuth2PasswordBearer только для Auth_Service, в модальном окне Authorize будут поля Username/Password.
 def authentication_and_get_current_user(token: str = Depends(bearer_scheme)):
-    """Функция извлечения пользователя из JWT access-токена."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return {
@@ -48,9 +45,7 @@ def authentication_and_get_current_user(token: str = Depends(bearer_scheme)):
         )
 
 
-# Аутентификация + Авторизация
 def permission_required(required_permission: str):
-    """Декоратор-зависимость для проверки наличия пермита в токене."""
     def _checker(user=Depends(authentication_and_get_current_user)):
         perms = user.get("permissions") or []
         if required_permission not in perms:

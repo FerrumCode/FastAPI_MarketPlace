@@ -40,5 +40,4 @@ kafka_producer = KafkaProducer()
 
 
 async def send_kafka_event(topic: str, payload: dict) -> None:
-    """Единая обёртка для вызова из CRUD."""
     await kafka_producer.send(topic, payload)

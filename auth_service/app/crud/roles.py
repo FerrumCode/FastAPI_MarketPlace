@@ -61,7 +61,6 @@ async def update_role_in_db(
     role_data: CreateRole
 ):
     try:
-        # Проверяем, существует ли роль с таким именем
         result = await db.execute(select(Role).where(Role.name == role_name))
         role = result.scalar_one_or_none()
 
@@ -71,7 +70,6 @@ async def update_role_in_db(
                 detail=f"Роль с именем '{role_name}' не найдена"
             )
 
-        # Проверяем, не занято ли новое имя другой ролью
         if role_data.name != role_name:
             result = await db.execute(select(Role).where(Role.name == role_data.name))
             existing_role = result.scalar_one_or_none()
@@ -81,7 +79,6 @@ async def update_role_in_db(
                     detail=f"Роль с именем '{role_data.name}' уже существует"
                 )
 
-        # Обновляем данные роли
         await db.execute(
             update(Role)
             .where(Role.name == role_name)

@@ -9,7 +9,7 @@ from app.db_depends import get_db
 from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
-    bearer_scheme,           # берём тот же HTTPBearer, что использует get_current_user
+    bearer_scheme,
     user_owner_access_checker,
 )
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
@@ -33,7 +33,6 @@ async def create_order(
     current_user=Depends(authentication_get_current_user),
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
-    # извлекаем «сырой» Bearer для дальнейшего проксирования в downstream сервисы
     bearer_header = f"Bearer {creds.credentials}"
 
     user_uuid = (
@@ -42,7 +41,6 @@ async def create_order(
         else UUID(str(current_user["id"]))
     )
 
-    # 1. Создаём заказ в транзакции
     async with db.begin():
         created_order = await svc_create_order(
             db,
@@ -53,12 +51,10 @@ async def create_order(
             auth_header=bearer_header,
         )
 
-    # 2. После коммита перечитываем заказ полностью
     order_full = await svc_get_order(db, created_order.id)
     if not order_full:
         raise HTTPException(status_code=500, detail="Order lost after creation")
 
-    # 3. Публикуем событие для воркера
     await kafka_producer.send(
         KAFKA_ORDER_TOPIC,
         {
@@ -83,7 +79,6 @@ async def create_order(
         key=str(order_full.id),
     )
 
-    # 4. Возвращаем заказ клиенту
     return order_full
 
 
@@ -95,7 +90,6 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(user_owner_access_checker),
 ):
-    # Достаём заказ (проверка прав уже выполнена зависимостью)
     order = await svc_get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -110,13 +104,11 @@ async def delete_order(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(user_owner_access_checker),
 ):
-    # Удаляем заказ в транзакции (если его нет — вернём 404)
     async with db.begin():
         ok = await svc_delete_order(db, order_id)
         if not ok:
             raise HTTPException(status_code=404, detail="Order not found")
 
-    # Отправляем событие в Kafka
     await kafka_producer.send(
         KAFKA_ORDER_TOPIC,
         {
@@ -139,13 +131,11 @@ async def patch_order_status(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(user_owner_access_checker),
 ):
-    # Обновляем статус в транзакции
     async with db.begin():
         order_after = await svc_update_order_status(db, order_id, payload.status)
         if not order_after:
             raise HTTPException(status_code=404, detail="Order not found")
 
-    # Шлём событие в Kafka
     await kafka_producer.send(
         KAFKA_ORDER_TOPIC,
         {
@@ -156,7 +146,6 @@ async def patch_order_status(
         key=str(order_id),
     )
 
-    # Возвращаем свежее состояние (с items)
     fresh = await svc_get_order(db, order_id)
     if not fresh:
         raise HTTPException(status_code=404, detail="Order not found")
