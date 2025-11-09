@@ -96,7 +96,7 @@ async def get_order(
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
-    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+    if (order.user_id != user_id) and ("can_force_rights" not in perms):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -118,7 +118,7 @@ async def delete_order(
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
-    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+    if (order.user_id != user_id) and ("can_force_rights" not in perms):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -154,7 +154,7 @@ async def patch_order_status(
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
-    if (order.user_id != user_id) and ("can_force_get_order" not in perms):
+    if (order.user_id != user_id) and ("can_force_rights" not in perms):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",

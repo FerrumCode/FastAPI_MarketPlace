@@ -84,7 +84,7 @@ async def patch_review(
 
     current_user_uuid = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
-    if (review_user_uuid != current_user_uuid) and ("can_force_get_order" not in perms):
+    if (review_user_uuid != current_user_uuid) and ("can_force_rights" not in perms):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
@@ -115,7 +115,7 @@ async def delete_review(
 
     current_user_uuid = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
-    if (review_user_uuid != current_user_uuid) and ("can_force_get_order" not in perms):
+    if (review_user_uuid != current_user_uuid) and ("can_force_rights" not in perms):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
