@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Query, Depends, status
+from fastapi import APIRouter, Query, Depends, status, HTTPException
 from app.schemas.review import ReviewCreate, ReviewOut, ReviewUpdate
 from app.service import reviews as svc
 from app.core.kafka import kafka_producer
+from uuid import UUID
+from app.service.reviews import get_review_by_id as svc_get_review_by_id
 
 from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
-    user_owner_access_checker,
 )
 
 import logging
@@ -72,8 +73,22 @@ async def patch_review(
     review_id: str,
     payload: ReviewUpdate,
     current_user=Depends(authentication_get_current_user),
-    _: None = Depends(user_owner_access_checker),
 ):
+    review = await svc_get_review_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+
+    review_user_uuid = UUID(review.get("user_id"))
+    if review_user_uuid is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
+
+    current_user_uuid = UUID(current_user["id"])
+    perms = current_user.get("permissions") or []
+    if (review_user_uuid != current_user_uuid) and ("can_force_get_order" not in perms):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this review (owner only, role 'user')",
+        )
     return await svc.update_review(
         user_id=str(current_user["id"]),
         review_id=review_id,
@@ -89,8 +104,22 @@ async def patch_review(
 async def delete_review(
     review_id: str,
     current_user=Depends(authentication_get_current_user),
-    _: None = Depends(user_owner_access_checker),
 ):
+    review = await svc_get_review_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+
+    review_user_uuid = UUID(review.get("user_id"))
+    if review_user_uuid is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
+
+    current_user_uuid = UUID(current_user["id"])
+    perms = current_user.get("permissions") or []
+    if (review_user_uuid != current_user_uuid) and ("can_force_get_order" not in perms):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this review (owner only, role 'user')",
+        )
     return await svc.delete_review(
         user_id=str(current_user["id"]),
         review_id=review_id,
