@@ -6,49 +6,16 @@ from app.models.role import Role
 from app.schemas.role import CreateRole
 
 
-async def get_role_from_db(
-    db: AsyncSession,
-    role_id: int | None = None,
-    role_name: str | None = None,
-):
+async def get_roles_from_db(db: AsyncSession):
     try:
-        if role_id is not None and role_name is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Укажите только один параметр поиска: либо id, либо name.",
-            )
-
-        if role_id is not None:
-            result = await db.execute(select(Role).where(Role.id == role_id))
-            role = result.scalar_one_or_none()
-            if not role:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Роль с id '{role_id}' не найдена",
-                )
-            return role
-
-        if role_name is not None:
-            result = await db.execute(select(Role).where(Role.name == role_name))
-            role = result.scalar_one_or_none()
-            if not role:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Роль с именем '{role_name}' не найдена",
-                )
-            return role
-
         query = select(Role)
         result = await db.execute(query)
         roles = result.scalars().all()
         return roles
-
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении ролей: {str(e)}",
+            detail=f"Ошибка при получении ролей: {str(e)}"
         )
 
 
@@ -94,6 +61,7 @@ async def update_role_in_db(
     role_data: CreateRole
 ):
     try:
+        # Проверяем, существует ли роль с таким именем
         result = await db.execute(select(Role).where(Role.name == role_name))
         role = result.scalar_one_or_none()
 
@@ -103,6 +71,7 @@ async def update_role_in_db(
                 detail=f"Роль с именем '{role_name}' не найдена"
             )
 
+        # Проверяем, не занято ли новое имя другой ролью
         if role_data.name != role_name:
             result = await db.execute(select(Role).where(Role.name == role_data.name))
             existing_role = result.scalar_one_or_none()
@@ -112,6 +81,7 @@ async def update_role_in_db(
                     detail=f"Роль с именем '{role_data.name}' уже существует"
                 )
 
+        # Обновляем данные роли
         await db.execute(
             update(Role)
             .where(Role.name == role_name)

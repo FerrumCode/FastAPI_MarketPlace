@@ -11,11 +11,13 @@ from app.db import engine, Base
 app = FastAPI(title="Auth Service")
 
 
+# Redis init
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    #Инициализируем Redis
     await init_redis(app)
 
 
@@ -24,6 +26,7 @@ async def shutdown():
     await close_redis()
 
 
+# Добавляем JWT middleware (публичные пути уже внутри middleware)
 app.add_middleware(JWTMiddleware)
 
 

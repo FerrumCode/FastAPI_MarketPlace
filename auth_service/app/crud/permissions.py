@@ -6,51 +6,23 @@ from app.models.permission import Permission
 from app.schemas.permission import CreatePermission
 
 
-
-async def get_permission_from_db(
-    db: AsyncSession,
-    permission_id: int | None = None,
-    code: str | None = None
-):
-    if (permission_id is None and code is None) or (permission_id is not None and code is not None):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Укажите ровно один параметр: либо id, либо code."
-        )
-
+async def get_permissions_from_db(db: AsyncSession):
     try:
-        if permission_id is not None:
-            result = await db.execute(
-                select(Permission).where(Permission.id == permission_id)
-            )
-            ident = f"id={permission_id}"
-        else:
-            result = await db.execute(
-                select(Permission).where(Permission.code == code)
-            )
-            ident = f"code='{code}'"
+        query = select(Permission)
+        result = await db.execute(query)
+        permissions = result.scalars().all()
+        return permissions
 
-        permission = result.scalar_one_or_none()
-
-        if not permission:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Разрешение с {ident} не найдено"
-            )
-
-        return permission
-
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении разрешения: {str(e)}"
+            detail=f"Ошибка при получении разрешений: {str(e)}"
         )
 
 
 async def create_permission_in_db(db: AsyncSession, create_permission: CreatePermission):
     try:
+        # Проверяем, существует ли разрешение с таким же кодом
         result = await db.execute(
             select(Permission).where(Permission.code == create_permission.code)
         )
@@ -62,6 +34,7 @@ async def create_permission_in_db(db: AsyncSession, create_permission: CreatePer
                 detail=f"Разрешение с кодом '{create_permission.code}' уже существует"
             )
 
+        # Создаем новое разрешение
         new_permission = Permission(
             code=create_permission.code,
             description=create_permission.description
@@ -93,6 +66,7 @@ async def change_permission_in_db(
     permission_data: CreatePermission
 ):
     try:
+        # Проверяем, существует ли разрешение
         result = await db.execute(
             select(Permission).where(Permission.code == permission_code)
         )
@@ -104,6 +78,7 @@ async def change_permission_in_db(
                 detail=f"Разрешение с кодом '{permission_code}' не найдено"
             )
 
+        # Проверяем, не существует ли уже разрешения с новым кодом
         if permission_data.code != permission_code:
             result = await db.execute(
                 select(Permission).where(Permission.code == permission_data.code)
@@ -116,6 +91,7 @@ async def change_permission_in_db(
                     detail=f"Разрешение с кодом '{permission_data.code}' уже существует"
                 )
 
+        # Обновляем разрешение
         await db.execute(
             update(Permission)
             .where(Permission.code == permission_code)

@@ -8,6 +8,7 @@ from env import SECRET_KEY, ALGORITHM
 
 class JWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Разрешаем открытые эндпоинты
         public_paths = ["/auth", "/docs", "/openapi.json", "/redoc", "/favicon.ico"]
         if any(request.url.path.startswith(path) for path in public_paths):
             return await call_next(request)
@@ -18,6 +19,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
 
         token = auth_header.split(" ")[1]
 
+        # Получаем Redis из app.state
         redis = getattr(request.app.state, "redis", None)
         if redis:
             if await redis.get(f"bl_{token}"):
@@ -26,10 +28,12 @@ class JWTMiddleware(BaseHTTPMiddleware):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
+            # Проверяем срок действия
             exp = payload.get("exp")
             if exp and datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc):
                 return JSONResponse({"detail": "Token expired"}, status_code=401)
 
+            # Передаем пользователя в request.state
             request.state.user = payload
 
         except jwt.ExpiredSignatureError:

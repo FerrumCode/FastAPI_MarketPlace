@@ -1,4 +1,7 @@
 services:
+  # ======================
+  # AUTH SERVICE
+  # ======================
   auth_service:
     build:
       context: ./auth_service
@@ -68,8 +71,9 @@ services:
     networks:
       - backend_network
 
-
-
+  # ======================
+  # CATALOG SERVICE
+  # ======================
   catalog_service:
     build:
       context: ./catalog_service
@@ -141,8 +145,9 @@ services:
     networks:
       - backend_network
 
-
-
+  # ======================
+  # ORDERS SERVICE
+  # ======================
   orders_service:
     build:
       context: ./orders_service
@@ -152,8 +157,6 @@ services:
       - "8002:8000"
     depends_on:
       orders_db:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     env_file:
       - ./orders_service/.env
@@ -196,46 +199,9 @@ services:
     networks:
       - backend_network
 
-
-
-  reviews_service:
-    build:
-      context: ./reviews_service
-      dockerfile: Dockerfile
-    container_name: reviews_service
-    ports:
-      - "8003:8000"
-    env_file:
-      - ./reviews_service/.env
-    volumes:
-      - ./reviews_service:/app
-    depends_on:
-      reviews_mongo:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    restart: always
-    networks:
-      - backend_network
-
-  reviews_mongo:
-    image: mongo:6.0
-    container_name: reviews_mongo
-    ports:
-      - "27018:27017"
-    volumes:
-      - reviews_mongo_data:/data/db
-    healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: always
-    networks:
-      - backend_network
-
-
-
+  # ======================
+  # KAFKA + ZOOKEEPER
+  # ======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -259,7 +225,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
     healthcheck:
@@ -271,8 +236,9 @@ services:
     networks:
       - backend_network
 
-
-
+# ======================
+# VOLUMES & NETWORK
+# ======================
 volumes:
   auth_data:
   auth_pgadmin_data:
@@ -282,7 +248,6 @@ volumes:
   catalog_pgadmin_data:
   orders_data:
   orders_pgadmin_data:
-  reviews_mongo_data:
 
 networks:
   backend_network:
