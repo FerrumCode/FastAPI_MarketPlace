@@ -7,7 +7,6 @@ from app.models.order import Order
 from app.db_depends import get_db
 from app.schemas.order_item import OrderItemCreate, OrderItemRead, OrderItemUpdate
 from app.crud.order_items import (
-    get_all_order_items_from_db,
     get_order_item_from_db,
     create_order_item_in_db,
     update_order_item_in_db,
@@ -17,15 +16,6 @@ from app.dependencies.depend import authentication_get_current_user, permission_
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
-
-@router.get("/",
-            dependencies=[Depends(permission_required("can_get_all_orders"))],
-            response_model=list[OrderItemRead])
-async def get_all_order_items(
-    db: AsyncSession = Depends(get_db),
-    user=Depends(authentication_get_current_user),
-):
-    return await get_all_order_items_from_db(db)
 
 
 @router.get("/{id}",

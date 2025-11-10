@@ -23,7 +23,6 @@ async def shutdown():
 
 
 app.include_router(orders_router.router)
-app.include_router(orders_crud.router)
 app.include_router(order_items_router.router)
 
 

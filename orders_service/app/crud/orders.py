@@ -22,18 +22,6 @@ def _money(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-async def get_all_orders_from_db(db: AsyncSession, user_id: UUID) -> list[OrderOut]:
-    q = (
-        select(Order)
-        .options(selectinload(Order.items))
-        .where(Order.user_id == user_id)
-        .order_by(Order.created_at.desc())
-    )
-    res = await db.execute(q)
-    orders = res.scalars().all()
-    return [OrderOut.model_validate(o) for o in orders]
-
-
 async def get_order_from_db(order_id: UUID, db: AsyncSession) -> OrderOut:
     q = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
     res = await db.execute(q)

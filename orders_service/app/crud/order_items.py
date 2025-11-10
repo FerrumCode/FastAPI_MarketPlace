@@ -11,11 +11,6 @@ from app.core.kafka import send_kafka_event
 from env import KAFKA_ORDER_TOPIC
 
 
-async def get_all_order_items_from_db(db: AsyncSession):
-    result = await db.execute(select(OrderItem))
-    items = result.scalars().all()
-    return [OrderItemRead.model_validate(i) for i in items]
-
 
 async def get_order_item_from_db(id: str, db: AsyncSession):
     result = await db.execute(select(OrderItem).where(OrderItem.id == id))
