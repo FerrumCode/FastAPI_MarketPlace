@@ -8,12 +8,6 @@ from app.core.kafka import send_kafka_event
 
 
 
-async def get_all_products_from_db(db: AsyncSession):
-    result = await db.execute(select(Product))
-    products = result.scalars().all()
-    return [ProductRead.model_validate(p) for p in products]
-
-
 async def get_product_from_db(id: str, db: AsyncSession):
     result = await db.execute(select(Product).where(Product.id == id))
     product = result.scalar_one_or_none()
