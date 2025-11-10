@@ -5,13 +5,18 @@ from app.models.product import Product
 from app.db_depends import get_db
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.core.kafka import send_kafka_event
-from app.crud.products import (create_product_in_db, update_product_in_db,
+from app.crud.products import (get_all_products_from_db, create_product_in_db, update_product_in_db,
                                get_product_from_db, delete_product_form_db)
 from app.dependencies.depend import authentication_get_current_user, permission_required
 
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
+
+@router.get("/", response_model=list[ProductRead])
+async def get_all_products(db: AsyncSession = Depends(get_db),
+                           user = Depends(authentication_get_current_user)):
+   return await get_all_products_from_db(db)
 
 
 @router.get("/{id}", response_model=ProductRead)
