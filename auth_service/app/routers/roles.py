@@ -5,7 +5,7 @@ from typing import Annotated
 from app.db_depends import get_db
 from app.schemas.role import CreateRole
 from app.crud.roles import (
-    get_roles_from_db,
+    get_role_from_db,
     create_role_in_db,
     update_role_in_db,
     delete_role_from_db,
@@ -17,11 +17,13 @@ router = APIRouter(prefix="/role", tags=["Role"])
 
 
 @router.get("/",
-            dependencies=[Depends(permission_required("can_get_roles"))])
-async def get_roles(
+            dependencies=[Depends(permission_required("can_get_role"))])
+async def get_role(
     db: Annotated[AsyncSession, Depends(get_db)],
+    id: int | None = None,
+    name: str | None = None,
 ):
-    return await get_roles_from_db(db)
+    return await get_role_from_db(db, role_id=id, role_name=name)
 
 
 @router.post("/",

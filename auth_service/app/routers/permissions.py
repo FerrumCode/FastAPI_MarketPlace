@@ -5,7 +5,7 @@ from typing import Annotated
 from app.db_depends import get_db
 from app.schemas.permission import CreatePermission
 from app.crud.permissions import (
-    get_permissions_from_db,
+    get_permission_from_db,   # новый импорт
     create_permission_in_db,
     change_permission_in_db,
     delete_permission_in_db,
@@ -18,10 +18,12 @@ router = APIRouter(prefix="/permission", tags=["Permission"])
 
 @router.get("/",
             dependencies=[Depends(permission_required("can_get_permissions"))])
-async def get_permissions(
+async def get_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
+    id: int | None = None,
+    code: str | None = None,
 ):
-    return await get_permissions_from_db(db)
+    return await get_permission_from_db(db, permission_id=id, code=code)
 
 
 @router.post("/",

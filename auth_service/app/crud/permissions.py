@@ -6,17 +6,46 @@ from app.models.permission import Permission
 from app.schemas.permission import CreatePermission
 
 
-async def get_permissions_from_db(db: AsyncSession):
-    try:
-        query = select(Permission)
-        result = await db.execute(query)
-        permissions = result.scalars().all()
-        return permissions
 
+async def get_permission_from_db(
+    db: AsyncSession,
+    permission_id: int | None = None,
+    code: str | None = None
+):
+    if (permission_id is None and code is None) or (permission_id is not None and code is not None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Укажите ровно один параметр: либо id, либо code."
+        )
+
+    try:
+        if permission_id is not None:
+            result = await db.execute(
+                select(Permission).where(Permission.id == permission_id)
+            )
+            ident = f"id={permission_id}"
+        else:
+            result = await db.execute(
+                select(Permission).where(Permission.code == code)
+            )
+            ident = f"code='{code}'"
+
+        permission = result.scalar_one_or_none()
+
+        if not permission:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Разрешение с {ident} не найдено"
+            )
+
+        return permission
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении разрешений: {str(e)}"
+            detail=f"Ошибка при получении разрешения: {str(e)}"
         )
 
 

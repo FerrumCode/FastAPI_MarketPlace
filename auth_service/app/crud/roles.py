@@ -6,16 +6,49 @@ from app.models.role import Role
 from app.schemas.role import CreateRole
 
 
-async def get_roles_from_db(db: AsyncSession):
+async def get_role_from_db(
+    db: AsyncSession,
+    role_id: int | None = None,
+    role_name: str | None = None,
+):
     try:
+        if role_id is not None and role_name is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Укажите только один параметр поиска: либо id, либо name.",
+            )
+
+        if role_id is not None:
+            result = await db.execute(select(Role).where(Role.id == role_id))
+            role = result.scalar_one_or_none()
+            if not role:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Роль с id '{role_id}' не найдена",
+                )
+            return role
+
+        if role_name is not None:
+            result = await db.execute(select(Role).where(Role.name == role_name))
+            role = result.scalar_one_or_none()
+            if not role:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Роль с именем '{role_name}' не найдена",
+                )
+            return role
+
         query = select(Role)
         result = await db.execute(query)
         roles = result.scalars().all()
         return roles
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении ролей: {str(e)}"
+            detail=f"Ошибка при получении ролей: {str(e)}",
         )
 
 

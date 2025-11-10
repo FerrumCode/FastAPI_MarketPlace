@@ -6,7 +6,7 @@ from app.schemas.user import CreateUser, UpdateUser
 from app.db_depends import get_db
 from app.crud.users import (
     get_all_users,
-    get_user,
+    get_user_from_db,
     create_user_in_db,
     update_user_by_name,
     delete_user,
@@ -17,21 +17,13 @@ from app.dependencies.depend import permission_required
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/",
-            dependencies=[Depends(permission_required("can_get_users"))])
-async def get_users(
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    return await get_all_users(db)
-
-
 @router.get("/{name}",
-            dependencies=[Depends(permission_required("can_get_user_info"))])
-async def get_user_info(
+            dependencies=[Depends(permission_required("can_get_user"))])
+async def get_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
 ):
-    return await get_user(db, name)
+    return await get_user_from_db(db, name)
 
 
 @router.post("/",

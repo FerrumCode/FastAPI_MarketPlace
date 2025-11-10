@@ -42,14 +42,6 @@ async def add_review(
     return data
 
 
-@router.get("/", response_model=list[ReviewOut])
-async def get_all_reviews(
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-):
-    return await svc.get_all_reviews(limit=limit, offset=offset)
-
-
 @router.get("/{product_id}", response_model=list[ReviewOut])
 async def get_reviews(
     product_id: str,
