@@ -13,19 +13,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 
-async def get_all_users(db: AsyncSession):
-    try:
-        query = select(User.role_id, User.name)
-        result = await db.execute(query)
-        return result.mappings().all()
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении пользователей: {str(e)}",
-        )
-
-
-async def get_user(db: AsyncSession, name: str):
+async def get_user_from_db(db: AsyncSession, name: str):
     try:
         query = select(User).where(User.name == name)
         result = await db.execute(query)

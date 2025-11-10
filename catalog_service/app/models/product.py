@@ -1,5 +1,6 @@
 import uuid
 from typing import Annotated
+from decimal import Decimal
 
 from sqlalchemy import Text, Numeric, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
@@ -15,10 +16,8 @@ class Product(Base):
     id: Mapped[uuidpk]
     name: Mapped[Annotated[str, mapped_column(Text, nullable=False)]]
     description: Mapped[Annotated[str, mapped_column(Text)]]
-    price: Mapped[Annotated[float, mapped_column(Numeric(10, 2), nullable=False)]]
-    category_id: Mapped[
-        Annotated[uuid.UUID, mapped_column(UUID(as_uuid=True), ForeignKey("categories.id"))]
-    ]
+    price: Mapped[Annotated[Decimal, mapped_column(Numeric(10, 2), nullable=False)]]
+    category_id: Mapped[Annotated[uuid.UUID, mapped_column(UUID(as_uuid=True), ForeignKey("categories.id"))]]
     created_at: Mapped[created_ts]
 
     category: Mapped["Category"] = relationship(back_populates="products")

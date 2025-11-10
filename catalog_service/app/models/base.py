@@ -7,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, mapped_column
 
 
-# Алиасы для колонок
 uuidpk = Annotated[
     uuid.UUID,
     mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

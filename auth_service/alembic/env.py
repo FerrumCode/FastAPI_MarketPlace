@@ -35,35 +35,16 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Ниже рабочее для синхрона
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://user:pass@localhost:5433/auth_db"
 )
-
-# Ниже для асинхрона, работает, но на делании миграций ошибка
-# DATABASE_URL = os.getenv(
-#     "DATABASE_URL",
-#     "postgresql+asyncpg://user:pass@localhost:5433/auth_db"
-# )
-
 
 
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
-    """Run alembic in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -77,12 +58,6 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run alembic in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

@@ -42,7 +42,6 @@ async def update_product_in_db(id: str, data: ProductUpdate, db: AsyncSession):
     await db.commit()
     await db.refresh(product)
 
-    # отправляем событие в Kafka
     await send_kafka_event("product_events", {
         "event": "PRODUCT_UPDATED",
         "product_id": str(product.id),

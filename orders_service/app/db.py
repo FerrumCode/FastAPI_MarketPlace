@@ -1,22 +1,23 @@
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://user:pass@localhost:5434/catalog_db"
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
 )
 
-# создаём асинхронный движок
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
-
-# создаём фабрику сессий
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
-    class_=AsyncSession,
     expire_on_commit=False,
+    class_=AsyncSession,
     autoflush=False,
-    autocommit=False
 )
 
-Base = declarative_base()
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session

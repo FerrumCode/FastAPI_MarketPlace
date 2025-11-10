@@ -4,50 +4,53 @@ from typing import Annotated
 
 from app.db_depends import get_db
 from app.schemas.permission import CreatePermission
-from app.dependencies.auth import verify_admin_and_get_user
 from app.crud.permissions import (
-    get_permissions_from_db,
+    get_permission_from_db,   # новый импорт
     create_permission_in_db,
     change_permission_in_db,
     delete_permission_in_db,
 )
+from app.dependencies.depend import permission_required
 
 
 router = APIRouter(prefix="/permission", tags=["Permission"])
 
 
-
-@router.get("/get_permissions")
-async def get_permissions(
+@router.get("/",
+            dependencies=[Depends(permission_required("can_get_permissions"))])
+async def get_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
-    admin_user: dict = Depends(verify_admin_and_get_user)
+    id: int | None = None,
+    code: str | None = None,
 ):
-    return await get_permissions_from_db(db)
+    return await get_permission_from_db(db, permission_id=id, code=code)
 
 
-@router.post("/create_permission", status_code=status.HTTP_201_CREATED)
+@router.post("/",
+             dependencies=[Depends(permission_required("can_create_permission"))],
+             status_code=status.HTTP_201_CREATED)
 async def create_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     new_permission: CreatePermission,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await create_permission_in_db(db, new_permission)
 
 
-@router.put("/change_permission/{permission_code}", status_code=status.HTTP_200_OK)
+@router.put("/{permission_code}",
+            dependencies=[Depends(permission_required("can_change_permission"))],
+            status_code=status.HTTP_200_OK)
 async def change_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     permission_code: str,
     permission_data: CreatePermission,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await change_permission_in_db(db, permission_code, permission_data)
 
 
-@router.delete("/delete_permission/{code}")
+@router.delete("/{code}",
+               dependencies=[Depends(permission_required("can_delete_permission"))])
 async def delete_permission(
     db: Annotated[AsyncSession, Depends(get_db)],
     code: str,
-    admin_user: dict = Depends(verify_admin_and_get_user)
 ):
     return await delete_permission_in_db(db, code)

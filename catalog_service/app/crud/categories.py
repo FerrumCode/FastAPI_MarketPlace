@@ -2,7 +2,7 @@ import json
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from redis.asyncio.client import Redis  # импортируем тип для аннотации
+from redis.asyncio.client import Redis
 from app.models.category import Category
 from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 
@@ -32,7 +32,7 @@ async def create_category_in_db(category: CategoryCreate, db: AsyncSession, redi
     await db.commit()
     await db.refresh(new_cat)
 
-    await redis.delete("categories:list")  # сброс кеша
+    await redis.delete("categories:list")
     return CategoryRead.model_validate(new_cat)
 
 
