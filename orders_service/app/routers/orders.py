@@ -23,7 +23,6 @@ from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-#change for PR
 
 @router.post("/",
              dependencies=[Depends(permission_required("can_create_order"))],
