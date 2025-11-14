@@ -5,7 +5,6 @@ from typing import Annotated
 from app.schemas.user import CreateUser, UpdateUser
 from app.db_depends import get_db
 from app.crud.users import (
-    get_all_users,
     get_user_from_db,
     create_user_in_db,
     update_user_by_name,

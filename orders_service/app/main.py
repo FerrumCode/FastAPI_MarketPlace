@@ -3,7 +3,6 @@ from fastapi import FastAPI
 
 from app.core.kafka import kafka_producer
 from app.routers import orders as orders_router
-from app.routers import orders_crud
 from app.routers import orders_items_crud as order_items_router
 
 app = FastAPI(
