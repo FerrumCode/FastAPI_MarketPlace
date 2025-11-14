@@ -16,6 +16,7 @@ from app.dependencies.depend import permission_required
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+
 @router.get("/{name}",
             dependencies=[Depends(permission_required("can_get_user"))])
 async def get_user(
