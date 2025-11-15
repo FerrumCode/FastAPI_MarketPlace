@@ -1,0 +1,4 @@
+.env.pgadmin/
+__pycache__/
+.venv/
+.idea/
