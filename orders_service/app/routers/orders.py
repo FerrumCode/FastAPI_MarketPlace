@@ -1,9 +1,12 @@
 from uuid import UUID
 from typing import Any, Dict
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.kafka import kafka_producer
 from app.db_depends import get_db
@@ -12,7 +15,13 @@ from app.dependencies.depend import (
     permission_required,
     bearer_scheme,
 )
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
+from app.models.order import Order
+from app.schemas.order import (
+    OrderCreate,
+    OrderOut,
+    OrderStatusPatch,
+    FinalOrderPatch,
+)
 from app.service.orders import (
     create_order as svc_create_order,
     get_order as svc_get_order,
@@ -177,3 +186,98 @@ async def patch_order_status(
     if not fresh:
         raise HTTPException(status_code=404, detail="Order not found")
     return fresh
+
+
+@router.patch(
+    "/make_final_order_with_delivery/{order_id}",
+    dependencies=[Depends(permission_required("can_patch_order_status"))],
+    response_model=OrderOut,
+)
+async def make_final_order_with_delivery(
+    order_id: UUID,
+    payload: FinalOrderPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user),
+):
+    result = await db.execute(
+        select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    if payload.items:
+        items_by_id = {item.id: item for item in order.items}
+        items_by_product = {item.product_id: item for item in order.items}
+
+        for patch_item in payload.items:
+            target_item = None
+            if patch_item.id is not None:
+                target_item = items_by_id.get(patch_item.id)
+            elif patch_item.product_id is not None:
+                target_item = items_by_product.get(patch_item.product_id)
+
+            if target_item is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Order item for update not found",
+                )
+
+            if patch_item.quantity is not None:
+                target_item.quantity = patch_item.quantity
+            if patch_item.unit_price is not None:
+                target_item.unit_price = patch_item.unit_price
+
+    if payload.cart_price is not None:
+        order.cart_price = payload.cart_price
+    elif payload.items:
+        cart = Decimal("0.00")
+        for item in order.items:
+            cart += Decimal(str(item.unit_price)) * int(item.quantity)
+        order.cart_price = cart
+
+    if payload.delivery_price is not None:
+        order.delivery_price = payload.delivery_price
+
+    if payload.total_price is not None:
+        order.total_price = payload.total_price
+    else:
+        if payload.cart_price is not None or payload.delivery_price is not None or payload.items:
+            order.total_price = order.cart_price + order.delivery_price
+
+    if payload.status is not None:
+        order.status = payload.status
+
+    await db.commit()
+
+    result2 = await db.execute(
+        select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+    )
+    fresh = result2.scalar_one_or_none()
+    if not fresh:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    await kafka_producer.send(
+        KAFKA_ORDER_TOPIC,
+        {
+            "event": "ORDER_UPDATED",
+            "order_id": str(fresh.id),
+            "user_id": str(fresh.user_id),
+            "status": fresh.status,
+            "cart_price": float(fresh.cart_price),
+            "delivery_price": float(fresh.delivery_price),
+            "total_price": float(fresh.total_price),
+            "items": [
+                {
+                    "product_id": str(i.product_id),
+                    "quantity": i.quantity,
+                    "unit_price": float(i.unit_price),
+                }
+                for i in fresh.items
+            ],
+            "reason": "finalized_with_delivery",
+        },
+        key=str(fresh.id),
+    )
+
+    return OrderOut.model_validate(fresh)

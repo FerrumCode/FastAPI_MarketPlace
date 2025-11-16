@@ -22,6 +22,25 @@ class OrderStatusPatch(BaseModel):
     status: Literal["created", "paid", "shipped", "delivered", "cancelled"]
 
 
+class FinalOrderItemPatch(BaseModel):
+    id: UUID | None = None
+    product_id: UUID | None = None
+    quantity: int | None = Field(default=None, gt=0)
+    unit_price: Decimal | None = Field(default=None, ge=0)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class FinalOrderPatch(BaseModel):
+    cart_price: Decimal | None = Field(default=None, ge=0)
+    delivery_price: Decimal | None = Field(default=None, ge=0)
+    total_price: Decimal | None = Field(default=None, ge=0)
+    status: Literal["created", "paid", "shipped", "delivered", "cancelled"] | None = None
+    items: List[FinalOrderItemPatch] | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
