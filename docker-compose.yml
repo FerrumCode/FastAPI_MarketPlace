@@ -272,6 +272,42 @@ services:
       - backend_network
 
 
+  celery_worker_redis:
+    image: redis:7
+    container_name: celery_worker_redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - celery_worker_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - backend_network
+
+  celery_worker_service:
+    build:
+      context: ./celery_worker_service
+      dockerfile: Dockerfile
+    container_name: celery_worker_service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      celery_worker_redis:
+        condition: service_healthy
+      orders_service:
+        condition: service_started
+    env_file:
+      - ./celery_worker_service/.env
+    volumes:
+      - ./celery_worker_service:/app
+    restart: always
+    networks:
+      - backend_network
+
 
 volumes:
   auth_data:
@@ -283,6 +319,7 @@ volumes:
   orders_data:
   orders_pgadmin_data:
   reviews_mongo_data:
+  celery_worker_redis_data:
 
 networks:
   backend_network:
