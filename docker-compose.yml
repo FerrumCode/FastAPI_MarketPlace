@@ -288,10 +288,12 @@ services:
     networks:
       - backend_network
 
+
   celery_worker_service:
     build:
       context: ./celery_worker_service
       dockerfile: Dockerfile
+    image: celery_worker_image
     container_name: celery_worker_service
     depends_on:
       kafka:
@@ -304,6 +306,27 @@ services:
       - ./celery_worker_service/.env
     volumes:
       - ./celery_worker_service:/app
+    command: ["celery", "-A", "app.celery_app:celery_app", "worker", "-B", "-l", "info"]
+    restart: always
+    networks:
+      - backend_network
+
+
+  celery_kafka_consumer:
+    image: celery_worker_image
+    container_name: celery_kafka_consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      celery_worker_redis:
+        condition: service_healthy
+      orders_service:
+        condition: service_started
+    env_file:
+      - ./celery_worker_service/.env
+    volumes:
+      - ./celery_worker_service:/app
+    command: ["python", "-m", "app.services.kafka_consumer"]
     restart: always
     networks:
       - backend_network

@@ -16,15 +16,15 @@ def _get_auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {ORDERS_SERVICE_TOKEN}"}
 
 
-def patch_final_order(order_id: str, patch: FinalOrderPatch) -> OrderOut:
+async def patch_final_order(order_id: str, patch: FinalOrderPatch) -> OrderOut:
     url = f"{ORDERS_SERVICE_URL}/orders/make_final_order_with_delivery/{order_id}"
 
     payload = patch.model_dump(exclude_none=True, mode="json")
 
     logger.info("Calling Orders Service PATCH %s with payload=%s", url, payload)
 
-    with httpx.Client(timeout=10.0) as client:
-        resp = client.patch(url, json=payload, headers=_get_auth_headers())
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.patch(url, json=payload, headers=_get_auth_headers())
         resp.raise_for_status()
         data = resp.json()
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.celery_app import celery_app
@@ -17,8 +18,13 @@ def _money(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-@celery_app.task(name="orders.process_order_created")
-def process_order_created(event_payload: dict) -> None:
+@celery_app.task(
+    bind=True,
+    name="orders.process_order_created",
+    max_retries=5,
+    default_retry_delay=60,
+)
+def process_order_created(self, event_payload: dict) -> None:
     try:
         event = KafkaOrderEvent.model_validate(event_payload)
     except Exception as exc:
@@ -26,17 +32,30 @@ def process_order_created(event_payload: dict) -> None:
         return
 
     if event.event != "ORDER_CREATED":
-        logger.info("process_order_created called for non ORDER_CREATED event, ignoring")
+        logger.info(
+            "process_order_created called for non ORDER_CREATED event (%s), ignoring",
+            event.event,
+        )
         return
 
     base_currency = event.currency_base.upper()
     target_currency = DEFAULT_TARGET_CURRENCY.upper()
+    order_id_str = str(event.order_id)
 
     try:
         rate = get_exchange_rate(base_currency, target_currency)
     except Exception as exc:
-        logger.exception("Failed to get exchange rate %s->%s: %s", base_currency, target_currency, exc)
-        return
+        logger.exception(
+            "Failed to get exchange rate %s->%s for order %s, "
+            "retrying (attempt %s of %s): %s",
+            base_currency,
+            target_currency,
+            order_id_str,
+            self.request.retries + 1,
+            self.max_retries,
+            exc,
+        )
+        raise self.retry(exc=exc)
 
     total_quantity = 0
     patched_items: list[FinalOrderItemPatch] = []
@@ -65,10 +84,8 @@ def process_order_created(event_payload: dict) -> None:
         items=patched_items,
     )
 
-    order_id_str = str(event.order_id)
-
     try:
-        updated = patch_final_order(order_id_str, patch)
+        updated = asyncio.run(patch_final_order(order_id_str, patch))
         logger.info(
             "Order %s updated via Orders Service: cart=%s, delivery=%s, total=%s, status=%s",
             updated.id,
@@ -78,4 +95,12 @@ def process_order_created(event_payload: dict) -> None:
             updated.status,
         )
     except Exception as exc:
-        logger.exception("Failed to patch order %s via Orders Service: %s", order_id_str, exc)
+        logger.exception(
+            "Failed to patch order %s via Orders Service, "
+            "retrying (attempt %s of %s): %s",
+            order_id_str,
+            self.request.retries + 1,
+            self.max_retries,
+            exc,
+        )
+        raise self.retry(exc=exc)

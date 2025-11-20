@@ -11,4 +11,4 @@ RUN poetry install --no-root --no-interaction
 
 COPY . .
 
-CMD ["sh", "-c", "python -m app.services.kafka_consumer & celery -A app.celery_app:celery_app worker -B -l info"]
+CMD ["celery", "-A", "app.celery_app:celery_app", "worker", "-B", "-l", "info"]
