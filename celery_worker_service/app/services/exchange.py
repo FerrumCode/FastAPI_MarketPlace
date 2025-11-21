@@ -3,10 +3,11 @@ from decimal import Decimal
 import requests
 
 from .redis_cache import get_rate_from_cache, set_rate_to_cache
-
-API_KEY = "llUHQGa7iAgIGk9sIi0gX4CETHXM6QjA"
-BASE_URL = "https://api.apilayer.com/exchangerates_data/latest"
-TIMEOUT = 5
+from env import (
+    EXCHANGE_RATES_API_KEY,
+    EXCHANGE_RATES_API_BASE_URL,
+    EXCHANGE_RATES_API_TIMEOUT_SECONDS,
+)
 
 
 def _fetch_rate_from_api(base: str, target: str) -> Decimal:
@@ -21,10 +22,15 @@ def _fetch_rate_from_api(base: str, target: str) -> Decimal:
         "symbols": target,
     }
     headers = {
-        "apikey": API_KEY,
+        "apikey": EXCHANGE_RATES_API_KEY,
     }
 
-    response = requests.get(BASE_URL, params=params, headers=headers, timeout=TIMEOUT)
+    response = requests.get(
+        EXCHANGE_RATES_API_BASE_URL,
+        params=params,
+        headers=headers,
+        timeout=EXCHANGE_RATES_API_TIMEOUT_SECONDS,
+    )
     response.raise_for_status()
 
     data = response.json()

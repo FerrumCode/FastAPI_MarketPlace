@@ -14,3 +14,9 @@ ORDERS_SERVICE_URL = os.getenv("ORDERS_SERVICE_URL", "http://orders_service:8000
 ORDERS_SERVICE_TOKEN = os.getenv("ORDERS_SERVICE_TOKEN", "")
 
 DEFAULT_TARGET_CURRENCY = os.getenv("DEFAULT_TARGET_CURRENCY", "RUB")
+
+EXCHANGE_RATES_API_KEY = os.getenv("EXCHANGE_RATES_API_KEY", "")
+EXCHANGE_RATES_API_BASE_URL = os.getenv("EXCHANGE_RATES_API_BASE_URL",
+                                        "https://api.apilayer.com/exchangerates_data/latest")
+EXCHANGE_RATES_API_TIMEOUT_SECONDS = int(os.getenv("EXCHANGE_RATES_API_TIMEOUT_SECONDS", "5"))
+
