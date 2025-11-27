@@ -1,31 +1,46 @@
+import sys
+
 import uvicorn
 from fastapi import FastAPI
+from loguru import logger
+
 from app.routers import auth, users, roles, permissions
-
 from app.middleware.jwt_middleware import JWTMiddleware
+from app.middleware.logging import LoggingMiddleware
 from app.core.redis import init_redis, close_redis
-
 from app.db import engine, Base
 
+
+logger.remove()
+logger.add(
+    sys.stderr,
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+    serialize=True,
+    level="INFO",
+)
 
 app = FastAPI(title="Auth Service")
 
 
 @app.on_event("startup")
 async def startup():
+    logger.info("Application startup: initializing DB and Redis")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     await init_redis(app)
+    logger.info("Application startup completed")
 
 
 @app.on_event("shutdown")
 async def shutdown():
+    logger.info("Application shutdown: closing Redis")
     await close_redis()
+    logger.info("Application shutdown completed")
 
 
 app.add_middleware(JWTMiddleware)
-
+app.add_middleware(LoggingMiddleware)
 
 app.include_router(auth.router)
 app.include_router(users.router)

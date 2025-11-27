@@ -27,6 +27,7 @@ redis = "^5.0.8"
 email-validator = "^2.3.0"
 httpx = "^0.28.1"
 requests = "^2.32.5"
+loguru = "^0.7.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
