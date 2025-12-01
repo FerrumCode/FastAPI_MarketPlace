@@ -16,7 +16,6 @@ async def ensure_refresh_token_not_blacklisted(
     refresh_token: str = Body(embed=True),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    # Не логируем сам токен, чтобы не светить секреты
     logger.debug("Checking if provided refresh token is blacklisted")
 
     if await redis_client.get(f"bl_refresh_{refresh_token}"):

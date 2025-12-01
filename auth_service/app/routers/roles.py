@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
+from loguru import logger
 
 from app.db_depends import get_db
 from app.schemas.role import CreateRole
@@ -23,6 +24,11 @@ async def get_role(
     id: int | None = None,
     name: str | None = None,
 ):
+    logger.info(
+        "Вызван endpoint GET /role с параметрами id={id}, name='{name}'",
+        id=id,
+        name=name,
+    )
     return await get_role_from_db(db, role_id=id, role_name=name)
 
 
@@ -33,6 +39,10 @@ async def create_role(
     db: Annotated[AsyncSession, Depends(get_db)],
     create_role_data: CreateRole,
 ):
+    logger.info(
+        "Вызван endpoint POST /role для создания роли с именем '{name}'",
+        name=create_role_data.name,
+    )
     return await create_role_in_db(db, create_role_data)
 
 
@@ -44,6 +54,10 @@ async def update_role(
     role_name: str,
     role_data: CreateRole,
 ):
+    logger.info(
+        "Вызван endpoint PUT /role/{role_name} для обновления роли",
+        role_name=role_name,
+    )
     return await update_role_in_db(db, role_name, role_data)
 
 
@@ -53,4 +67,8 @@ async def delete_role(
     db: Annotated[AsyncSession, Depends(get_db)],
     name: str,
 ):
+    logger.info(
+        "Вызван endpoint DELETE /role/{name} для удаления роли",
+        name=name,
+    )
     return await delete_role_from_db(db, name)

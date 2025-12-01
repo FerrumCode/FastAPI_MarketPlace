@@ -10,14 +10,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        process_time = (time.time() - start_time) * 1000
-        formatted_process_time = f"{process_time:.2f}"
+        process_time_ms = (time.time() - start_time) * 1000
 
-        logger.info(
-            f"request_path={request.url.path} "
-            f"method={request.method} "
-            f"status_code={response.status_code} "
-            f"process_time_ms={formatted_process_time}"
-        )
+        logger.bind(
+            request_path=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            process_time_ms=round(process_time_ms, 2),
+        ).info("http_request_processed")
 
         return response

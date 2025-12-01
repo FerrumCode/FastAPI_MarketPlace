@@ -13,9 +13,11 @@ from app.db import engine, Base
 
 logger.remove()
 logger.add(
-    sys.stderr,
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-    serialize=True,
+    sys.stdout,
+    format='{{"timestamp": "{time:YYYY-MM-DDTHH:mm:ssZ}", '
+           '"level": "{level}", '
+           '"service": "auth", '
+           '"message": "{message}"}}',
     level="INFO",
 )
 
