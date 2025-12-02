@@ -41,14 +41,14 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser):
     logger.info(
-        "Попытка регистрации пользователя с именем '{name}' и email='{email}'",
+        "Attempt to register user with name '{name}' and email='{email}'",
         name=create_user.name,
         email=create_user.email,
     )
     result = await db.execute(select(Role).where(Role.name == "user"))
     role = result.scalar_one_or_none()
     if not role:
-        logger.error("Роль 'user' не найдена при регистрации пользователя '{name}'", name=create_user.name)
+        logger.error("Role 'user' not found during registration of user '{name}'", name=create_user.name)
         raise HTTPException(status_code=527, detail="Role 'user' not found")
 
     await db.execute(
@@ -61,7 +61,7 @@ async def register(db: Annotated[AsyncSession, Depends(get_db)], create_user: Cr
     )
     await db.commit()
     logger.info(
-        "Пользователь '{name}' успешно зарегистрирован с ролью id={role_id}",
+        "User '{name}' successfully registered with role id={role_id}",
         name=create_user.name,
         role_id=role.id,
     )
@@ -75,7 +75,7 @@ async def login(
     redis_client: redis.Redis = Depends(get_redis),
 ):
     logger.info(
-        "Попытка входа пользователя '{username}'",
+        "Login attempt for user '{username}'",
         username=form_data.username,
     )
     user = await authenticate_user(db, form_data.username, form_data.password)
@@ -87,7 +87,7 @@ async def login(
         user.id, user.name, user.role_id, redis_client
     )
     logger.info(
-        "Пользователь '{username}' успешно вошёл в систему. user_id={user_id}, role_id={role_id}",
+        "User '{username}' successfully logged in. user_id={user_id}, role_id={role_id}",
         username=user.name,
         user_id=user.id,
         role_id=user.role_id,
@@ -108,14 +108,14 @@ async def me(
     user: dict = Depends(authentication_and_get_current_user),
 ):
     logger.info(
-        "Запрос информации о текущем пользователе /auth/me. user_id={user_id}, name='{name}'",
+        "Request for current user info /auth/me. user_id={user_id}, name='{name}'",
         user_id=user.get("id"),
         name=user.get("name"),
     )
     auth_header = request.headers.get("authorization")
     if not auth_header or not auth_header.lower().startswith("bearer "):
         logger.warning(
-            "Запрос /auth/me без корректного заголовка Authorization. path='{path}'",
+            "Request /auth/me without a valid Authorization header. path='{path}'",
             path=str(request.url.path),
         )
         raise HTTPException(
@@ -127,7 +127,7 @@ async def me(
     stored_refresh = await redis_client.get(f"refresh_{user['id']}")
     if stored_refresh is None:
         logger.warning(
-            "Refresh-токен для пользователя user_id={user_id} не найден или отозван",
+            "Refresh token for user_id={user_id} not found or revoked",
             user_id=user.get("id"),
         )
         raise HTTPException(
@@ -138,7 +138,7 @@ async def me(
     refresh_token = stored_refresh.decode() if isinstance(stored_refresh, bytes) else stored_refresh
 
     logger.info(
-        "Успешный ответ /auth/me для пользователя user_id={user_id}",
+        "Successful /auth/me response for user_id={user_id}",
         user_id=user.get("id"),
     )
 
@@ -164,7 +164,7 @@ async def refresh(
     db: Annotated[AsyncSession, Depends(get_db)],
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
-    logger.info("Попытка обновления access-токена по refresh-токену")
+    logger.info("Attempt to refresh access token using refresh token")
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate refresh token",
@@ -179,7 +179,7 @@ async def refresh(
 
         if not username or not user_id:
             logger.error(
-                "Не удалось извлечь данные пользователя из refresh-токена при обновлении"
+                "Failed to extract user data from refresh token during refresh"
             )
             raise credentials_exception
 
@@ -187,7 +187,7 @@ async def refresh(
         user = result.scalar_one_or_none()
         if user is None:
             logger.warning(
-                "Пользователь '{username}' не найден при обновлении токена",
+                "User '{username}' not found during token refresh",
                 username=username,
             )
             raise credentials_exception
@@ -195,7 +195,7 @@ async def refresh(
         stored_refresh = await redis_client.get(f"refresh_{user_id}")
         if stored_refresh is None:
             logger.warning(
-                "Refresh-токен для user_id={user_id} не найден в Redis при обновлении",
+                "Refresh token for user_id={user_id} not found in Redis during refresh",
                 user_id=user_id,
             )
             raise credentials_exception
@@ -204,7 +204,7 @@ async def refresh(
             stored_refresh = stored_refresh.decode()
         if stored_refresh != refresh_token:
             logger.warning(
-                "Refresh-токен из запроса не совпадает с токеном в Redis для user_id={user_id}",
+                "Refresh token from request does not match token in Redis for user_id={user_id}",
                 user_id=user_id,
             )
             raise credentials_exception
@@ -217,7 +217,7 @@ async def refresh(
         )
 
         logger.info(
-            "Успешное обновление токенов для пользователя '{username}' (user_id={user_id})",
+            "Successfully refreshed tokens for user '{username}' (user_id={user_id})",
             username=username,
             user_id=user_id,
         )
@@ -229,12 +229,12 @@ async def refresh(
         }
 
     except jwt.ExpiredSignatureError:
-        logger.warning("Refresh-токен просрочен при попытке обновления")
+        logger.warning("Refresh token expired during refresh attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired"
         )
     except jwt.InvalidTokenError:
-        logger.error("Невалидный refresh-токен при попытке обновления")
+        logger.error("Invalid refresh token during refresh attempt")
         raise credentials_exception
 
 
@@ -246,16 +246,16 @@ async def blacklisting(
     refresh_token: Annotated[str, Body(embed=True)],
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
-    logger.info("Попытка добавления refresh-токена в blacklist")
+    logger.info("Attempt to add refresh token to blacklist")
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         exp = payload.get("exp")
         ttl = exp - int(datetime.utcnow().timestamp())
         if ttl > 0:
             await redis_client.setex(f"bl_refresh_{refresh_token}", ttl, "true")
-            logger.info("Refresh-токен добавлен в blacklist с TTL={ttl} секунд", ttl=ttl)
+            logger.info("Refresh token added to blacklist with TTL={ttl} seconds", ttl=ttl)
     except jwt.InvalidTokenError:
-        logger.warning("Попытка добавить в blacklist невалидный refresh-токен")
+        logger.warning("Attempt to add invalid refresh token to blacklist")
         pass
     return {"detail": "Refresh token blacklisted successfully"}
 
@@ -267,14 +267,14 @@ async def blacklisting(
 async def blacklist(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
     prefix: str = Query(
-        "bl_refresh_", description="Префикс для ключей blacklist"
+        "bl_refresh_", description="Prefix for blacklist keys"
     ),
 ):
-    logger.info("Запрос списка blacklist токенов с префиксом '{prefix}'", prefix=prefix)
+    logger.info("Request for blacklist tokens list with prefix '{prefix}'", prefix=prefix)
     keys = await redis_client.keys(f"{prefix}*")
     tokens = [key.decode().replace(prefix, "") for key in keys]
     logger.info(
-        "Найдено {count} токен(ов) в blacklist с префиксом '{prefix}'",
+        "Found {count} token(s) in blacklist with prefix '{prefix}'",
         count=len(tokens),
         prefix=prefix,
     )
@@ -289,10 +289,10 @@ async def remove(
     refresh_token: Annotated[str, Body(embed=True)],
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
-    logger.info("Попытка удаления refresh-токена из blacklist")
+    logger.info("Attempt to remove refresh token from blacklist")
     deleted = await redis_client.delete(f"bl_refresh_{refresh_token}")
     if deleted == 0:
-        logger.info("Попытка удалить refresh-токен, который отсутствует в blacklist")
+        logger.info("Attempt to remove refresh token that is not in blacklist")
         return {"detail": "Token not found in blacklist"}
-    logger.info("Refresh-токен успешно удалён из blacklist")
+    logger.info("Refresh token successfully removed from blacklist")
     return {"detail": "Token removed from blacklist"}

@@ -9,13 +9,11 @@ from app.models.role import Role
 from app.schemas.user import CreateUser
 
 
-
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-
 async def get_user_from_db(db: AsyncSession, name: str):
-    logger.info("Запрос пользователя из БД по имени '{name}'", name=name)
+    logger.info("Requesting user from DB by name '{name}'", name=name)
     try:
         query = select(User).where(User.name == name)
         result = await db.execute(query)
@@ -23,15 +21,15 @@ async def get_user_from_db(db: AsyncSession, name: str):
 
         if not user:
             logger.warning(
-                "Пользователь с именем '{name}' не найден при запросе",
+                "User with name '{name}' not found during request",
                 name=name,
             )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Пользователь с именем '{name}' не найден",
+                detail=f"User with name '{name}' not found",
             )
         logger.info(
-            "Пользователь с именем '{name}' успешно получен из БД",
+            "User with name '{name}' successfully retrieved from DB",
             name=name,
         )
         return user
@@ -39,12 +37,12 @@ async def get_user_from_db(db: AsyncSession, name: str):
         raise
     except Exception as e:
         logger.exception(
-            "Необработанная ошибка при поиске пользователя с именем '{name}'",
+            "Unhandled error while searching for user with name '{name}'",
             name=name,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при поиске пользователя: {str(e)}",
+            detail=f"Error while searching for user: {str(e)}",
         )
 
 
@@ -54,7 +52,7 @@ async def create_user_in_db(
     role_id: int,
 ):
     logger.info(
-        "Попытка создания пользователя '{name}' с ролью role_id={role_id}",
+        "Attempting to create user '{name}' with role_id={role_id}",
         name=create_user_data.name,
         role_id=role_id,
     )
@@ -63,13 +61,13 @@ async def create_user_in_db(
 
     if not role:
         logger.warning(
-            "Роль с ID {role_id} не найдена при создании пользователя '{name}'",
+            "Role with ID {role_id} not found when creating user '{name}'",
             role_id=role_id,
             name=create_user_data.name,
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Роль с ID {role_id} не найдена",
+            detail=f"Role with ID {role_id} not found",
         )
 
     await db.execute(
@@ -83,7 +81,7 @@ async def create_user_in_db(
     await db.commit()
 
     logger.info(
-        "Пользователь '{name}' успешно создан с ролью role_id={role_id}",
+        "User '{name}' successfully created with role_id={role_id}",
         name=create_user_data.name,
         role_id=role_id,
     )
@@ -98,21 +96,21 @@ async def update_user_by_name(
     role_id: int,
 ):
     logger.info(
-        "Попытка обновления пользователя: старое имя='{old_name}', новое имя='{new_name}', role_id={role_id}",
+        "Attempting to update user: old name='{old_name}', new name='{new_name}', role_id={role_id}",
         old_name=name,
         new_name=update_user.name,
         role_id=role_id,
     )
     if not (await db.execute(select(User).where(User.name == name))).scalar_one_or_none():
         logger.warning(
-            "Пользователь с именем '{name}' не найден для обновления",
+            "User with name '{name}' not found for update",
             name=name,
         )
         raise HTTPException(404, "User not found")
 
     if not (await db.execute(select(Role).where(Role.id == role_id))).scalar_one_or_none():
         logger.warning(
-            "Роль с ID {role_id} не найдена для обновления пользователя '{name}'",
+            "Role with ID {role_id} not found for updating user '{name}'",
             role_id=role_id,
             name=name,
         )
@@ -131,7 +129,7 @@ async def update_user_by_name(
     await db.commit()
 
     logger.info(
-        "Пользователь с именем '{old_name}' успешно обновлён: новое имя='{new_name}', role_id={role_id}",
+        "User with name '{old_name}' successfully updated: new name='{new_name}', role_id={role_id}",
         old_name=name,
         new_name=update_user.name,
         role_id=role_id,
@@ -142,7 +140,7 @@ async def update_user_by_name(
 
 async def delete_user(db: AsyncSession, name: str):
     logger.info(
-        "Попытка удаления пользователя с именем '{name}'",
+        "Attempting to delete user with name '{name}'",
         name=name,
     )
     result = await db.execute(select(User).where(User.name == name))
@@ -150,19 +148,19 @@ async def delete_user(db: AsyncSession, name: str):
 
     if not user:
         logger.warning(
-            "Пользователь с именем '{name}' не найден для удаления",
+            "User with name '{name}' not found for deletion",
             name=name,
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Пользователь с именем '{name}' не найден",
+            detail=f"User with name '{name}' not found",
         )
 
     await db.execute(delete(User).where(User.name == name))
     await db.commit()
 
     logger.info(
-        "Пользователь с именем '{name}' успешно удалён",
+        "User with name '{name}' successfully deleted",
         name=name,
     )
 

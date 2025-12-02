@@ -14,7 +14,7 @@ async def get_permission_from_db(
     code: str | None = None,
 ):
     logger.info(
-        "Запрос разрешения из БД с параметрами: id={permission_id}, code={code}",
+        "Requesting permission from DB with parameters: id={permission_id}, code={code}",
         permission_id=permission_id,
         code=code,
     )
@@ -23,13 +23,13 @@ async def get_permission_from_db(
         permission_id is not None and code is not None
     ):
         logger.error(
-            "Некорректная комбинация параметров в get_permission_from_db: permission_id={permission_id}, code={code}",
+            "Invalid combination of parameters in get_permission_from_db: permission_id={permission_id}, code={code}",
             permission_id=permission_id,
             code=code,
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Укажите ровно один параметр: либо id, либо code.",
+            detail="Specify exactly one parameter: either id or code.",
         )
 
     try:
@@ -48,16 +48,16 @@ async def get_permission_from_db(
 
         if not permission:
             logger.warning(
-                "Разрешение не найдено в БД по {ident}",
+                "Permission not found in DB by {ident}",
                 ident=ident
             )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Разрешение с {ident} не найдено",
+                detail=f"Permission with {ident} not found",
             )
 
         logger.info(
-            "Разрешение успешно получено из БД: id={id}, code={code}",
+            "Permission successfully retrieved from DB: id={id}, code={code}",
             id=permission.id,
             code=permission.code,
         )
@@ -65,16 +65,16 @@ async def get_permission_from_db(
 
     except HTTPException:
         logger.exception(
-            "Возникла HTTPException при получении разрешения из БД"
+            "HTTPException occurred while retrieving permission from DB"
         )
         raise
     except Exception as e:
         logger.exception(
-            "Неожиданная ошибка при получении разрешения из БД"
+            "Unexpected error while retrieving permission from DB"
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении разрешения: {str(e)}",
+            detail=f"Error while retrieving permission: {str(e)}",
         )
 
 
@@ -83,7 +83,7 @@ async def create_permission_in_db(
     create_permission: CreatePermission,
 ):
     logger.info(
-        "Попытка создания нового разрешения с code='{code}'",
+        "Attempt to create a new permission with code='{code}'",
         code=create_permission.code,
     )
 
@@ -95,12 +95,12 @@ async def create_permission_in_db(
 
         if existing_permission:
             logger.warning(
-                "Попытка создать уже существующее разрешение с code='{code}'",
+                "Attempt to create an already existing permission with code='{code}'",
                 code=create_permission.code,
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Разрешение с кодом '{create_permission.code}' уже существует",
+                detail=f"Permission with code '{create_permission.code}' already exists",
             )
 
         new_permission = Permission(
@@ -113,29 +113,29 @@ async def create_permission_in_db(
         await db.refresh(new_permission)
 
         logger.info(
-            "Разрешение успешно создано в БД: id={id}, code={code}",
+            "Permission successfully created in DB: id={id}, code={code}",
             id=new_permission.id,
             code=new_permission.code,
         )
 
         return {
             "status_code": status.HTTP_201_CREATED,
-            "message": "Разрешение успешно создано",
+            "message": "Permission successfully created",
             "permission": new_permission,
         }
 
     except HTTPException:
         logger.exception(
-            "Возникла HTTPException при создании разрешения в БД"
+            "HTTPException occurred while creating permission in DB"
         )
         await db.rollback()
         raise
     except Exception as e:
-        logger.exception("Неожиданная ошибка при создании разрешения в БД")
+        logger.exception("Unexpected error while creating permission in DB")
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при создании разрешения: {str(e)}",
+            detail=f"Error while creating permission: {str(e)}",
         )
 
 
@@ -145,7 +145,7 @@ async def change_permission_in_db(
     permission_data: CreatePermission,
 ):
     logger.info(
-        "Попытка обновления разрешения с code='{code}'. Новый code='{new_code}'",
+        "Attempt to update permission with code='{code}'. New code='{new_code}'",
         code=permission_code,
         new_code=permission_data.code,
     )
@@ -158,17 +158,17 @@ async def change_permission_in_db(
 
         if not permission:
             logger.warning(
-                "Попытка обновить несуществующее разрешение с code='{code}'",
+                "Attempt to update non-existent permission with code='{code}'",
                 code=permission_code,
             )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Разрешение с кодом '{permission_code}' не найдено",
+                detail=f"Permission with code '{permission_code}' not found",
             )
 
         if permission_data.code != permission_code:
             logger.debug(
-                "Проверка конфликта кода при смене code с '{old_code}' на '{new_code}'",
+                "Checking code conflict when changing code from '{old_code}' to '{new_code}'",
                 old_code=permission_code,
                 new_code=permission_data.code,
             )
@@ -179,12 +179,12 @@ async def change_permission_in_db(
 
             if existing_permission:
                 logger.warning(
-                    "Попытка сменить код разрешения на уже существующий code='{code}'",
+                    "Attempt to change permission code to an already existing code='{code}'",
                     code=permission_data.code,
                 )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Разрешение с кодом '{permission_data.code}' уже существует",
+                    detail=f"Permission with code '{permission_data.code}' already exists",
                 )
 
         await db.execute(
@@ -198,14 +198,14 @@ async def change_permission_in_db(
         await db.commit()
 
         logger.info(
-            "Разрешение успешно обновлено в БД: old_code='{old_code}', new_code='{new_code}'",
+            "Permission successfully updated in DB: old_code='{old_code}', new_code='{new_code}'",
             old_code=permission_code,
             new_code=permission_data.code,
         )
 
         return {
             "status": "success",
-            "message": "Разрешение успешно обновлено",
+            "message": "Permission successfully updated",
             "old_code": permission_code,
             "new_code": permission_data.code,
             "new_description": permission_data.description,
@@ -213,22 +213,22 @@ async def change_permission_in_db(
 
     except HTTPException:
         logger.exception(
-            "Возникла HTTPException при обновлении разрешения в БД"
+            "HTTPException occurred while updating permission in DB"
         )
         await db.rollback()
         raise
     except Exception as e:
-        logger.exception("Неожиданная ошибка при обновлении разрешения в БД")
+        logger.exception("Unexpected error while updating permission in DB")
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при обновлении разрешения: {str(e)}",
+            detail=f"Error while updating permission: {str(e)}",
         )
 
 
 async def delete_permission_in_db(db: AsyncSession, code: str):
     logger.info(
-        "Попытка удаления разрешения с code='{code}' из БД",
+        "Attempt to delete permission with code='{code}' from DB",
         code=code,
     )
 
@@ -240,37 +240,37 @@ async def delete_permission_in_db(db: AsyncSession, code: str):
 
         if not permission:
             logger.warning(
-                "Попытка удалить несуществующее разрешение с code='{code}'",
+                "Attempt to delete non-existent permission with code='{code}'",
                 code=code,
             )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Разрешение с кодом '{code}' не найдено",
+                detail=f"Permission with code '{code}' not found",
             )
 
         await db.execute(delete(Permission).where(Permission.code == code))
         await db.commit()
 
         logger.info(
-            "Разрешение с code='{code}' успешно удалено из БД",
+            "Permission with code='{code}' successfully deleted from DB",
             code=code,
         )
 
         return {
             "status_code": status.HTTP_200_OK,
-            "message": "Разрешение успешно удалено",
+            "message": "Permission successfully deleted",
         }
 
     except HTTPException:
         logger.exception(
-            "Возникла HTTPException при удалении разрешения из БД"
+            "HTTPException occurred while deleting permission from DB"
         )
         await db.rollback()
         raise
     except Exception as e:
-        logger.exception("Неожиданная ошибка при удалении разрешения из БД")
+        logger.exception("Unexpected error while deleting permission from DB")
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при удалении разрешения: {str(e)}",
+            detail=f"Error while deleting permission: {str(e)}",
         )

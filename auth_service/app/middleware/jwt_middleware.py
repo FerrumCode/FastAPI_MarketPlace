@@ -14,7 +14,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         logger.info(
-            "Проверка JWT для запроса. path='{path}', client='{client}'",
+            "Checking JWT for request. path='{path}', client='{client}'",
             path=request.url.path,
             client=request.client.host if request.client else None,
         )
@@ -22,7 +22,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             logger.warning(
-                "Попытка доступа без корректного заголовка Authorization. path='{path}'",
+                "Attempt to access without a valid Authorization header. path='{path}'",
                 path=request.url.path,
             )
             return JSONResponse({"detail": "Missing or invalid token"}, status_code=401)
@@ -33,7 +33,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
         if redis:
             if await redis.get(f"bl_{token}"):
                 logger.warning(
-                    "Попытка доступа с заблокированным JWT-токеном. path='{path}'",
+                    "Attempt to access with a blacklisted JWT token. path='{path}'",
                     path=request.url.path,
                 )
                 return JSONResponse({"detail": "Token is blacklisted"}, status_code=401)
@@ -44,27 +44,27 @@ class JWTMiddleware(BaseHTTPMiddleware):
             exp = payload.get("exp")
             if exp and datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc):
                 logger.warning(
-                    "Попытка доступа с истекшим JWT-токеном. path='{path}'",
+                    "Attempt to access with an expired JWT token. path='{path}'",
                     path=request.url.path,
                 )
                 return JSONResponse({"detail": "Token expired"}, status_code=401)
 
             request.state.user = payload
             logger.info(
-                "JWT-токен успешно валидирован. user_id={user_id}, path='{path}'",
+                "JWT token successfully validated. user_id={user_id}, path='{path}'",
                 user_id=payload.get("id"),
                 path=request.url.path,
             )
 
         except jwt.ExpiredSignatureError:
             logger.warning(
-                "Попытка доступа с просроченным JWT-токеном (ExpiredSignatureError). path='{path}'",
+                "Attempt to access with an expired JWT token (ExpiredSignatureError). path='{path}'",
                 path=request.url.path,
             )
             return JSONResponse({"detail": "Token expired"}, status_code=401)
         except jwt.InvalidTokenError:
             logger.error(
-                "Попытка доступа с невалидным JWT-токеном. path='{path}'",
+                "Attempt to access with an invalid JWT token. path='{path}'",
                 path=request.url.path,
             )
             return JSONResponse({"detail": "Invalid token"}, status_code=401)

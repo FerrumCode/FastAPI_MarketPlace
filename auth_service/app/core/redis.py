@@ -7,7 +7,7 @@ redis_client: redis.Redis | None = None
 
 async def init_redis(app: FastAPI) -> redis.Redis:
     global redis_client
-    logger.info("Инициализация подключения к Redis")
+    logger.info("Initializing connection to Redis")
     try:
         redis_client = redis.Redis(
             host="auth_redis",
@@ -18,7 +18,7 @@ async def init_redis(app: FastAPI) -> redis.Redis:
         )
 
         await redis_client.ping()
-        logger.info("Redis подключён и ping прошёл успешно")
+        logger.info("Redis connected and ping successful")
         app.state.redis = redis_client
         return redis_client
 
@@ -31,25 +31,25 @@ async def init_redis(app: FastAPI) -> redis.Redis:
 
 async def get_redis() -> redis.Redis:
     if redis_client is None:
-        logger.error("Попытка получить Redis-клиент до инициализации")
+        logger.error("Attempt to get Redis client before initialization")
         logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis клиент не инициализирован")
+        raise RuntimeError("Redis client don't inicialize")
 
-    logger.info("Получен экземпляр Redis-клиента")
+    logger.info("Redis client instance obtained")
     return redis_client
 
 
 async def set_refresh_token(user_id: int, token: str, expire_days: int):
     if redis_client is None:
         logger.error(
-            "Попытка сохранить refresh-токен в Redis до инициализации клиента. user_id={user_id}",
+            "Attempt to save refresh token to Redis before client initialization. user_id={user_id}",
             user_id=user_id,
         )
         logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis клиент не инициализирован")
+        raise RuntimeError("Redis client don't inicialize")
     await redis_client.setex(f"refresh_{user_id}", expire_days * 24 * 3600, token)
     logger.info(
-        "Refresh-токен сохранён в Redis для user_id={user_id}, срок действия {days} дней",
+        "Refresh token saved in Redis for user_id={user_id}, expires in {days} days",
         user_id=user_id,
         days=expire_days,
     )
@@ -58,16 +58,16 @@ async def set_refresh_token(user_id: int, token: str, expire_days: int):
 async def get_refresh_token(user_id: int) -> str | None:
     if redis_client is None:
         logger.error(
-            "Попытка получить refresh-токен из Redis до инициализации клиента. user_id={user_id}",
+            "Attempt to get refresh token from Redis before client initialization. user_id={user_id}",
             user_id=user_id,
         )
         logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis клиент не инициализирован")
+        raise RuntimeError("Redis client don't inicialize")
     token = await redis_client.get(f"refresh_{user_id}")
     if token is None:
-        logger.info("Refresh-токен для user_id={user_id} в Redis не найден", user_id=user_id)
+        logger.info("Refresh token for user_id={user_id} not found in Redis", user_id=user_id)
     else:
-        logger.info("Refresh-токен для user_id={user_id} успешно получен из Redis", user_id=user_id)
+        logger.info("Refresh token for user_id={user_id} successfully retrieved from Redis", user_id=user_id)
     return token
 
 
@@ -79,4 +79,4 @@ async def close_redis():
         logger.warning("Redis closed")
         redis_client = None
     else:
-        logger.info("Попытка закрыть Redis, но клиент уже отсутствует или не инициализирован")
+        logger.info("Attempt to close Redis, but the client is already missing or not initialized")

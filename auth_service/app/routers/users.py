@@ -17,7 +17,6 @@ from app.dependencies.depend import permission_required
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-
 @router.get(
     "/{name}",
     dependencies=[Depends(permission_required("can_get_user"))],
@@ -27,7 +26,7 @@ async def get_user(
     name: str,
 ):
     logger.info(
-        "Вызван endpoint GET /users/{name} для получения пользователя",
+        "Endpoint GET /users/{name} called to retrieve user",
         name=name,
     )
     return await get_user_from_db(db, name)
@@ -44,7 +43,7 @@ async def create_user(
     role_id: int,
 ):
     logger.info(
-        "Вызван endpoint POST /users для создания пользователя '{name}' с ролью role_id={role_id}",
+        "Endpoint POST /users called to create user '{name}' with role_id={role_id}",
         name=create_user_data.name,
         role_id=role_id,
     )
@@ -63,7 +62,7 @@ async def update_user_by_name(
     role_id: int,
 ):
     logger.info(
-        "Вызван endpoint PUT /users/{name} для обновления пользователя. Новое имя='{new_name}', role_id={role_id}",
+        "Endpoint PUT /users/{name} called to update user. New name='{new_name}', role_id={role_id}",
         name=name,
         new_name=update_user_data.name,
         role_id=role_id,
@@ -80,7 +79,7 @@ async def delete_user(
     name: str,
 ):
     logger.info(
-        "Вызван endpoint DELETE /users/{name} для удаления пользователя",
+        "Endpoint DELETE /users/{name} called to delete user",
         name=name,
     )
     return await delete_user_from_db(db, name)

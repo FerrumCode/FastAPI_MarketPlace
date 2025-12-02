@@ -27,7 +27,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
-    logger.debug("Получение списка прав для роли role_id={role_id}", role_id=role_id)
+    logger.debug("Fetching permissions list for role_id={role_id}", role_id=role_id)
     result = await db.execute(
         select(Permission.code)
         .join(Role.permissions)
@@ -36,7 +36,7 @@ async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[s
     )
     permissions = list(result.scalars().all())
     logger.debug(
-        "Получены права для роли role_id={role_id}: count={count}",
+        "Permissions fetched for role_id={role_id}: count={count}",
         role_id=role_id,
         count=len(permissions),
     )
@@ -44,11 +44,11 @@ async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[s
 
 
 async def fetch_role_name_by_role_id(db: AsyncSession, role_id: int) -> str | None:
-    logger.debug("Получение имени роли по role_id={role_id}", role_id=role_id)
+    logger.debug("Fetching role name by role_id={role_id}", role_id=role_id)
     res = await db.execute(select(Role.name).where(Role.id == role_id))
     role_name = res.scalar_one_or_none()
     logger.debug(
-        "Результат получения имени роли: role_id={role_id}, role_name='{role_name}'",
+        "Result of fetching role name: role_id={role_id}, role_name='{role_name}'",
         role_id=role_id,
         role_name=role_name,
     )
@@ -59,7 +59,7 @@ async def create_access_token(
     username: str, user_id: int, role_id: int, expires_delta: timedelta
 ):
     logger.info(
-        "Создание access-токена для пользователя username='{username}', user_id={user_id}, role_id={role_id}",
+        "Creating access token for user username='{username}', user_id={user_id}, role_id={role_id}",
         username=username,
         user_id=user_id,
         role_id=role_id,
@@ -73,8 +73,8 @@ async def create_access_token(
             break
     except Exception:
         logger.exception(
-            "Не удалось получить права или имя роли при создании access-токена. "
-            "Будет использован пустой список прав и role_name=None"
+            "Failed to fetch permissions or role name while creating access token. "
+            "An empty permissions list and role_name=None will be used"
         )
         permissions = []
         role_name = None
@@ -90,7 +90,7 @@ async def create_access_token(
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     logger.info(
-        "Access-токен создан для пользователя user_id={user_id}, role_id={role_id}, exp={exp}",
+        "Access token created for user_id={user_id}, role_id={role_id}, exp={exp}",
         user_id=user_id,
         role_id=role_id,
         exp=payload["exp"],
@@ -102,7 +102,7 @@ async def create_refresh_token(
     user_id: int, username: str, role_id: int, redis_client: redis.Redis
 ):
     logger.info(
-        "Создание refresh-токена для пользователя username='{username}', user_id={user_id}, role_id={role_id}",
+        "Creating refresh token for user username='{username}', user_id={user_id}, role_id={role_id}",
         username=username,
         user_id=user_id,
         role_id=role_id,
@@ -114,8 +114,8 @@ async def create_refresh_token(
             break
     except Exception:
         logger.exception(
-            "Не удалось получить имя роли при создании refresh-токена. "
-            "Будет использовано role_name=None"
+            "Failed to fetch role name while creating refresh token. "
+            "role_name=None will be used"
         )
         role_name = None
 
@@ -132,7 +132,7 @@ async def create_refresh_token(
         f"refresh_{user_id}", REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600, token
     )
     logger.info(
-        "Refresh-токен создан и сохранён в Redis для пользователя user_id={user_id}, role_id={role_id}, exp={exp}",
+        "Refresh token created and stored in Redis for user_id={user_id}, role_id={role_id}, exp={exp}",
         user_id=user_id,
         role_id=role_id,
         exp=payload["exp"],
@@ -146,13 +146,13 @@ async def authenticate_user(
     password: str,
 ):
     logger.info(
-        "Попытка аутентификации пользователя username='{username}'",
+        "Attempting to authenticate user username='{username}'",
         username=username,
     )
     user = await db.scalar(select(User).where(User.name == username))
     if not user or not bcrypt_context.verify(password, user.password_hash):
         logger.warning(
-            "Неуспешная попытка аутентификации пользователя username='{username}'",
+            "Failed authentication attempt for user username='{username}'",
             username=username,
         )
         raise HTTPException(
@@ -161,7 +161,7 @@ async def authenticate_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     logger.info(
-        "Пользователь username='{username}' успешно аутентифицирован, user_id={user_id}, role_id={role_id}",
+        "User username='{username}' successfully authenticated, user_id={user_id}, role_id={role_id}",
         username=username,
         user_id=user.id,
         role_id=user.role_id,

@@ -25,7 +25,7 @@ async def get_role(
     name: str | None = None,
 ):
     logger.info(
-        "Вызван endpoint GET /role с параметрами id={id}, name='{name}'",
+        "Endpoint GET /role called with parameters id={id}, name='{name}'",
         id=id,
         name=name,
     )
@@ -40,7 +40,7 @@ async def create_role(
     create_role_data: CreateRole,
 ):
     logger.info(
-        "Вызван endpoint POST /role для создания роли с именем '{name}'",
+        "Endpoint POST /role called to create role with name '{name}'",
         name=create_role_data.name,
     )
     return await create_role_in_db(db, create_role_data)
@@ -55,7 +55,7 @@ async def update_role(
     role_data: CreateRole,
 ):
     logger.info(
-        "Вызван endpoint PUT /role/{role_name} для обновления роли",
+        "Endpoint PUT /role/{role_name} called to update role",
         role_name=role_name,
     )
     return await update_role_in_db(db, role_name, role_data)
@@ -68,7 +68,7 @@ async def delete_role(
     name: str,
 ):
     logger.info(
-        "Вызван endpoint DELETE /role/{name} для удаления роли",
+        "Endpoint DELETE /role/{name} called to delete role",
         name=name,
     )
     return await delete_role_from_db(db, name)
