@@ -19,6 +19,7 @@ logger.add(
            '"service": "auth", '
            '"message": "{message}"}}',
     level="INFO",
+    serialize=True,
 )
 
 app = FastAPI(title="Auth Service")
