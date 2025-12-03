@@ -18,6 +18,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "auth_service"
 
   auth_db:
     image: postgres:15
@@ -36,6 +41,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "auth_db"
 
   auth_pgadmin:
     image: dpage/pgadmin4
@@ -51,6 +61,11 @@ services:
         condition: service_healthy
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "auth_pgadmin"
 
   auth_redis:
     image: redis:7
@@ -67,6 +82,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "auth_redis"
 
 
 
@@ -91,6 +111,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "catalog_service"
 
   catalog_db:
     image: postgres:15
@@ -109,6 +134,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "catalog_db"
 
   catalog_pgadmin:
     image: dpage/pgadmin4
@@ -124,6 +154,11 @@ services:
         condition: service_healthy
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "catalog_pgadmin"
 
   catalog_redis:
     image: redis:7
@@ -140,6 +175,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "catalog_redis"
 
 
 
@@ -162,6 +202,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "orders_service"
 
   orders_db:
     image: postgres:15
@@ -180,6 +225,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "orders_db"
 
   orders_pgadmin:
     image: dpage/pgadmin4
@@ -195,6 +245,11 @@ services:
         condition: service_healthy
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "orders_pgadmin"
 
 
 
@@ -217,6 +272,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "reviews_service"
 
   reviews_mongo:
     image: mongo:6.0
@@ -233,6 +293,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "reviews_mongo"
 
 
 
@@ -247,6 +312,11 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "zookeeper"
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -270,6 +340,12 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "kafka"
+
 
 
   celery_worker_redis:
@@ -287,7 +363,11 @@ services:
     restart: always
     networks:
       - backend_network
-
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "celery_worker_redis"
 
   celery_worker_service:
     build:
@@ -310,7 +390,11 @@ services:
     restart: always
     networks:
       - backend_network
-
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "celery_worker_service"
 
   celery_kafka_consumer:
     image: celery_worker_image
@@ -330,6 +414,95 @@ services:
     restart: always
     networks:
       - backend_network
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "celery_kafka_consumer"
+
+
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend_network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    container_name: logstash
+    ports:
+      - "5044:5044"
+      - "12201:12201/udp"
+      - "9600:9600"
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - backend_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - backend_network
+
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - backend_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - backend_network
+
 
 
 volumes:
@@ -343,6 +516,9 @@ volumes:
   orders_pgadmin_data:
   reviews_mongo_data:
   celery_worker_redis_data:
+  es_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   backend_network:

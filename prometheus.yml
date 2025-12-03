@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Сам Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # Ниже примеры — раскомментируешь, когда добавишь /metrics в сервисы
+
+  # - job_name: 'auth_service'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['auth_service:8000']
+
+  # - job_name: 'catalog_service'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['catalog_service:8001']
+
+  # - job_name: 'orders_service'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['orders_service:8002']
+
+  # - job_name: 'reviews_service'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['reviews_service:8003']
