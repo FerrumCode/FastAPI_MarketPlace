@@ -64,9 +64,6 @@ async def get_permission_from_db(
         return permission
 
     except HTTPException:
-        logger.exception(
-            "HTTPException occurred while retrieving permission from DB"
-        )
         raise
     except Exception as e:
         logger.exception(
@@ -125,7 +122,7 @@ async def create_permission_in_db(
         }
 
     except HTTPException:
-        logger.exception(
+        logger.warning(
             "HTTPException occurred while creating permission in DB"
         )
         await db.rollback()
@@ -212,7 +209,7 @@ async def change_permission_in_db(
         }
 
     except HTTPException:
-        logger.exception(
+        logger.warning(
             "HTTPException occurred while updating permission in DB"
         )
         await db.rollback()
@@ -262,7 +259,7 @@ async def delete_permission_in_db(db: AsyncSession, code: str):
         }
 
     except HTTPException:
-        logger.exception(
+        logger.warning(
             "HTTPException occurred while deleting permission from DB"
         )
         await db.rollback()

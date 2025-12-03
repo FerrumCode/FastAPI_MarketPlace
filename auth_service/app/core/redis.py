@@ -32,8 +32,8 @@ async def init_redis(app: FastAPI) -> redis.Redis:
 async def get_redis() -> redis.Redis:
     if redis_client is None:
         logger.error("Attempt to get Redis client before initialization")
-        logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis client don't inicialize")
+        logger.debug("Redis client is not initialized")
+        raise RuntimeError("Redis client is not initialized")
 
     logger.info("Redis client instance obtained")
     return redis_client
@@ -45,8 +45,9 @@ async def set_refresh_token(user_id: int, token: str, expire_days: int):
             "Attempt to save refresh token to Redis before client initialization. user_id={user_id}",
             user_id=user_id,
         )
-        logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis client don't inicialize")
+        logger.debug("Redis client is not initialized")
+        raise RuntimeError("Redis client is not initialized")
+
     await redis_client.setex(f"refresh_{user_id}", expire_days * 24 * 3600, token)
     logger.info(
         "Refresh token saved in Redis for user_id={user_id}, expires in {days} days",
@@ -61,8 +62,9 @@ async def get_refresh_token(user_id: int) -> str | None:
             "Attempt to get refresh token from Redis before client initialization. user_id={user_id}",
             user_id=user_id,
         )
-        logger.exception("Redis client don't inicialize")
-        raise RuntimeError("Redis client don't inicialize")
+        logger.debug("Redis client is not initialized")
+        raise RuntimeError("Redis client is not initialized")
+
     token = await redis_client.get(f"refresh_{user_id}")
     if token is None:
         logger.info("Refresh token for user_id={user_id} not found in Redis", user_id=user_id)
@@ -76,7 +78,7 @@ async def close_redis():
     if redis_client:
         await redis_client.close()
         await redis_client.connection_pool.disconnect()
-        logger.warning("Redis closed")
+        logger.info("Redis closed")
         redis_client = None
     else:
         logger.info("Attempt to close Redis, but the client is already missing or not initialized")

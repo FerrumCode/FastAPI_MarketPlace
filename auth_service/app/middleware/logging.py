@@ -1,3 +1,4 @@
+import uuid
 import time
 from loguru import logger
 from starlette.requests import Request
@@ -8,15 +9,18 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
 
-        response = await call_next(request)
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
-        process_time_ms = (time.time() - start_time) * 1000
+        with logger.contextualize(request_id=request_id):
+            response = await call_next(request)
 
-        logger.bind(
-            request_path=request.url.path,
-            method=request.method,
-            status_code=response.status_code,
-            process_time_ms=round(process_time_ms, 2),
-        ).info("http_request_processed")
+            process_time_ms = (time.time() - start_time) * 1000
 
-        return response
+            logger.bind(
+                request_path=request.url.path,
+                method=request.method,
+                status_code=response.status_code,
+                process_time_ms=round(process_time_ms, 2),
+            ).info("http_request_processed")
+
+            return response
