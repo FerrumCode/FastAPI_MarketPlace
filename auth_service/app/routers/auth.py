@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import jwt
 import redis.asyncio as redis
 from loguru import logger
+from prometheus_client import Counter
 
 from app.models.user import User
 from app.models.role import Role
@@ -28,44 +29,78 @@ from app.utils import (
     authenticate_user,
 )
 
-from env import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from env import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SERVICE_NAME
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+AUTH_REGISTRATIONS_TOTAL = Counter(
+    "auth_registrations_total",
+    "User registration events",
+    ["service", "status"],
+)
 
+AUTH_LOGINS_TOTAL = Counter(
+    "auth_logins_total",
+    "User login events",
+    ["service", "status"],
+)
+
+AUTH_TOKEN_REFRESH_TOTAL = Counter(
+    "auth_token_refresh_total",
+    "Token refresh events",
+    ["service", "result"],
+)
+
+AUTH_BLACKLIST_OPERATIONS_TOTAL = Counter(
+    "auth_blacklist_operations_total",
+    "Refresh token blacklist operations",
+    ["service", "action", "result"],
+)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser):
+    AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Attempt to register user with name '{name}' and email='{email}'",
         name=create_user.name,
         email=create_user.email,
     )
-    result = await db.execute(select(Role).where(Role.name == "user"))
-    role = result.scalar_one_or_none()
-    if not role:
-        logger.error("Role 'user' not found during registration of user '{name}'", name=create_user.name)
-        raise HTTPException(status_code=527, detail="Role 'user' not found")
+    try:
+        result = await db.execute(select(Role).where(Role.name == "user"))
+        role = result.scalar_one_or_none()
+        if not role:
+            logger.error("Role 'user' not found during registration of user '{name}'", name=create_user.name)
+            AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="no_role").inc()
+            raise HTTPException(status_code=527, detail="Role 'user' not found")
 
-    await db.execute(
-        insert(User).values(
+        await db.execute(
+            insert(User).values(
+                name=create_user.name,
+                email=create_user.email,
+                password_hash=bcrypt_context.hash(create_user.password),
+                role_id=role.id,
+            )
+        )
+        await db.commit()
+        logger.info(
+            "User '{name}' successfully registered with role id={role_id}",
             name=create_user.name,
-            email=create_user.email,
-            password_hash=bcrypt_context.hash(create_user.password),
             role_id=role.id,
         )
-    )
-    await db.commit()
-    logger.info(
-        "User '{name}' successfully registered with role id={role_id}",
-        name=create_user.name,
-        role_id=role.id,
-    )
-    return {"status_code": status.HTTP_201_CREATED, "transaction": "Successful"}
+        AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
+        return {"status_code": status.HTTP_201_CREATED, "transaction": "Successful"}
+
+    except HTTPException as http_exc:
+        if http_exc.status_code != 527:
+            AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="http_error").inc()
+        raise
+    except Exception as exc:
+        AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="error").inc()
+        raise
 
 
 @router.post("/login")
@@ -74,11 +109,19 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     redis_client: redis.Redis = Depends(get_redis),
 ):
+    AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Login attempt for user '{username}'",
         username=form_data.username,
     )
-    user = await authenticate_user(db, form_data.username, form_data.password)
+    try:
+        user = await authenticate_user(db, form_data.username, form_data.password)
+    except HTTPException:
+        AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="http_error").inc()
+        raise
+    except Exception:
+        AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="error").inc()
+        raise
 
     access_token = await create_access_token(
         user.name, user.id, user.role_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -92,6 +135,8 @@ async def login(
         user_id=user.id,
         role_id=user.role_id,
     )
+
+    AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
 
     return {
         "access_token": access_token,
@@ -165,6 +210,8 @@ async def refresh(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to refresh access token using refresh token")
+    AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate refresh token",
@@ -181,6 +228,7 @@ async def refresh(
             logger.error(
                 "Failed to extract user data from refresh token during refresh"
             )
+            AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="missing_claims").inc()
             raise credentials_exception
 
         result = await db.execute(select(User).where(User.name == username))
@@ -190,6 +238,7 @@ async def refresh(
                 "User '{username}' not found during token refresh",
                 username=username,
             )
+            AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="user_not_found").inc()
             raise credentials_exception
 
         stored_refresh = await redis_client.get(f"refresh_{user_id}")
@@ -198,6 +247,7 @@ async def refresh(
                 "Refresh token for user_id={user_id} not found in Redis during refresh",
                 user_id=user_id,
             )
+            AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="not_in_redis").inc()
             raise credentials_exception
 
         if isinstance(stored_refresh, bytes):
@@ -207,6 +257,7 @@ async def refresh(
                 "Refresh token from request does not match token in Redis for user_id={user_id}",
                 user_id=user_id,
             )
+            AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="mismatch").inc()
             raise credentials_exception
 
         access_token = await create_access_token(
@@ -222,6 +273,8 @@ async def refresh(
             user_id=user_id,
         )
 
+        AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
+
         return {
             "access_token": access_token,
             "refresh_token": new_refresh_token,
@@ -230,11 +283,13 @@ async def refresh(
 
     except jwt.ExpiredSignatureError:
         logger.warning("Refresh token expired during refresh attempt")
+        AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="expired").inc()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired"
         )
     except jwt.InvalidTokenError:
         logger.error("Invalid refresh token during refresh attempt")
+        AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="invalid").inc()
         raise credentials_exception
 
 
@@ -247,6 +302,11 @@ async def blacklisting(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to add refresh token to blacklist")
+    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+        service=SERVICE_NAME,
+        action="add",
+        result="attempt",
+    ).inc()
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         exp = payload.get("exp")
@@ -254,8 +314,24 @@ async def blacklisting(
         if ttl > 0:
             await redis_client.setex(f"bl_refresh_{refresh_token}", ttl, "true")
             logger.info("Refresh token added to blacklist with TTL={ttl} seconds", ttl=ttl)
+            AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+                service=SERVICE_NAME,
+                action="add",
+                result="success",
+            ).inc()
+        else:
+            AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+                service=SERVICE_NAME,
+                action="add",
+                result="expired",
+            ).inc()
     except jwt.InvalidTokenError:
         logger.warning("Attempt to add invalid refresh token to blacklist")
+        AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+            service=SERVICE_NAME,
+            action="add",
+            result="invalid",
+        ).inc()
         pass
     return {"detail": "Refresh token blacklisted successfully"}
 
@@ -278,6 +354,11 @@ async def blacklist(
         count=len(tokens),
         prefix=prefix,
     )
+    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+        service=SERVICE_NAME,
+        action="list",
+        result="success",
+    ).inc()
     return {"blacklist": tokens}
 
 
@@ -290,9 +371,26 @@ async def remove(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to remove refresh token from blacklist")
+    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+        service=SERVICE_NAME,
+        action="remove",
+        result="attempt",
+    ).inc()
+
     deleted = await redis_client.delete(f"bl_refresh_{refresh_token}")
     if deleted == 0:
         logger.info("Attempt to remove refresh token that is not in blacklist")
+        AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+            service=SERVICE_NAME,
+            action="remove",
+            result="not_found",
+        ).inc()
         return {"detail": "Token not found in blacklist"}
+
     logger.info("Refresh token successfully removed from blacklist")
+    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
+        service=SERVICE_NAME,
+        action="remove",
+        result="success",
+    ).inc()
     return {"detail": "Token removed from blacklist"}

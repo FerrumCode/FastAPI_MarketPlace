@@ -9,7 +9,14 @@ from env import SECRET_KEY, ALGORITHM
 
 class JWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        public_paths = ["/auth", "/docs", "/openapi.json", "/redoc", "/favicon.ico"]
+        public_paths = [
+            "/auth",
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            "/favicon.ico",
+            "/metrics",
+        ]
         if any(request.url.path.startswith(path) for path in public_paths):
             return await call_next(request)
 

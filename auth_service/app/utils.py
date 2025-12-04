@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import jwt
 import redis.asyncio as redis
 from loguru import logger
+from prometheus_client import Counter
 
 from app.models.user import User
 from app.models.role import Role
@@ -19,11 +20,30 @@ from app.dependencies.depend import (
     authentication_and_get_current_user
 )
 
-from env import SECRET_KEY, ALGORITHM, REFRESH_TOKEN_EXPIRE_DAYS
+from env import SECRET_KEY, ALGORITHM, REFRESH_TOKEN_EXPIRE_DAYS, SERVICE_NAME
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+ACCESS_TOKENS_ISSUED_TOTAL = Counter(
+    "auth_access_tokens_issued_total",
+    "Access tokens created",
+    ["service", "role_name"],
+)
+
+REFRESH_TOKENS_ISSUED_TOTAL = Counter(
+    "auth_refresh_tokens_issued_total",
+    "Refresh tokens created",
+    ["service", "role_name"],
+)
+
+AUTHENTICATION_ATTEMPTS_TOTAL = Counter(
+    "auth_authentication_attempts_total",
+    "User authentication attempts",
+    ["service", "result"],
+)
 
 
 async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
@@ -95,6 +115,13 @@ async def create_access_token(
         role_id=role_id,
         exp=payload["exp"],
     )
+
+    role_label = role_name or "unknown"
+    ACCESS_TOKENS_ISSUED_TOTAL.labels(
+        service=SERVICE_NAME,
+        role_name=role_label,
+    ).inc()
+
     return token
 
 
@@ -137,6 +164,13 @@ async def create_refresh_token(
         role_id=role_id,
         exp=payload["exp"],
     )
+
+    role_label = role_name or "unknown"
+    REFRESH_TOKENS_ISSUED_TOTAL.labels(
+        service=SERVICE_NAME,
+        role_name=role_label,
+    ).inc()
+
     return token
 
 
@@ -149,21 +183,36 @@ async def authenticate_user(
         "Attempting to authenticate user username='{username}'",
         username=username,
     )
+
+    AUTHENTICATION_ATTEMPTS_TOTAL.labels(
+        service=SERVICE_NAME,
+        result="attempt",
+    ).inc()
+
     user = await db.scalar(select(User).where(User.name == username))
     if not user or not bcrypt_context.verify(password, user.password_hash):
         logger.warning(
             "Failed authentication attempt for user username='{username}'",
             username=username,
         )
+        AUTHENTICATION_ATTEMPTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            result="invalid",
+        ).inc()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     logger.info(
         "User username='{username}' successfully authenticated, user_id={user_id}, role_id={role_id}",
         username=username,
         user_id=user.id,
         role_id=user.role_id,
     )
+    AUTHENTICATION_ATTEMPTS_TOTAL.labels(
+        service=SERVICE_NAME,
+        result="success",
+    ).inc()
     return user
