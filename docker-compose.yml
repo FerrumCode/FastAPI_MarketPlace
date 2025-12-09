@@ -387,6 +387,8 @@ services:
     volumes:
       - ./celery_worker_service:/app
     command: ["celery", "-A", "app.celery_app:celery_app", "worker", "-B", "-l", "info"]
+    ports:
+      - "9000:9000"
     restart: always
     networks:
       - backend_network
