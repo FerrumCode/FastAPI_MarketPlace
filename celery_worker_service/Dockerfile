@@ -2,6 +2,8 @@ FROM python:3.13.5-bookworm
 
 WORKDIR /app
 
+RUN mkdir -p /tmp/celery_prometheus_multiproc
+
 RUN pip install --upgrade pip wheel "poetry==2.1.4"
 RUN poetry config virtualenvs.create false
 
