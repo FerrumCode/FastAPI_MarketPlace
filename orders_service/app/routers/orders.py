@@ -53,12 +53,6 @@ async def create_order(
     current_user=Depends(authentication_get_current_user),
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/",
-        method="POST",
-        status="attempt",
-    ).inc()
     logger.info(
         "Create order request received for user_id='{user_id}'",
         user_id=current_user.get("id"),
@@ -148,12 +142,6 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="GET",
-        status="attempt",
-    ).inc()
     logger.info(
         "Get order request received. order_id='{order_id}', user_id='{user_id}'",
         order_id=str(order_id),
@@ -191,6 +179,7 @@ async def get_order(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
         )
+
     logger.info(
         "Order successfully returned in get_order endpoint. order_id='{order_id}', user_id='{user_id}'",
         order_id=str(order_id),
@@ -215,12 +204,6 @@ async def delete_order(
     db: AsyncSession = Depends(get_db),
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="DELETE",
-        status="attempt",
-    ).inc()
     logger.info(
         "Delete order request received. order_id='{order_id}', user_id='{user_id}'",
         order_id=str(order_id),
@@ -296,12 +279,6 @@ async def patch_order_status(
     db: AsyncSession = Depends(get_db),
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="PATCH",
-        status="attempt",
-    ).inc()
     logger.info(
         "Patch order status request received. order_id='{order_id}', new_status='{status}', user_id='{user_id}'",
         order_id=str(order_id),
@@ -372,6 +349,7 @@ async def patch_order_status(
             status="not_found_after_patch",
         ).inc()
         raise HTTPException(status_code=404, detail="Order not found")
+
     logger.info(
         "Order successfully updated in patch_order_status endpoint. order_id='{order_id}', status='{status}'",
         order_id=str(order_id),
@@ -397,12 +375,6 @@ async def make_final_order_with_delivery(
     db: AsyncSession = Depends(get_db),
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/make_final_order_with_delivery/{order_id}",
-        method="PATCH",
-        status="attempt",
-    ).inc()
     logger.info(
         "Finalizing order with delivery request received. order_id='{order_id}', user_id='{user_id}'",
         order_id=str(order_id),

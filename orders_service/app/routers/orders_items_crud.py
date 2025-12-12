@@ -28,6 +28,7 @@ ORDER_ITEMS_API_REQUESTS_TOTAL = Counter(
 )
 
 
+
 @router.get(
     "/{id}",
     response_model=OrderItemRead,
@@ -37,12 +38,6 @@ async def get_order_item(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(authentication_get_current_user),
 ):
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="GET",
-        status="attempt",
-    ).inc()
     logger.info(
         "Get order item request received. item_id='{item_id}', user_id='{user_id}'",
         item_id=id,
@@ -97,6 +92,7 @@ async def get_order_item(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
         )
+
     logger.info(
         "Order item successfully returned in get_order_item. item_id='{item_id}', user_id='{user_id}'",
         item_id=id,
@@ -121,12 +117,6 @@ async def create_order_item(
     db: AsyncSession = Depends(get_db),
     user=Depends(authentication_get_current_user),
 ):
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/",
-        method="POST",
-        status="attempt",
-    ).inc()
     logger.info(
         "Create order item request received. order_id='{order_id}', user_id='{user_id}'",
         order_id=str(data.order_id),
@@ -158,12 +148,6 @@ async def update_order_item(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(authentication_get_current_user),
 ):
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="PUT",
-        status="attempt",
-    ).inc()
     logger.info(
         "Update order item request received. item_id='{item_id}', user_id='{user_id}'",
         item_id=id,
@@ -218,6 +202,7 @@ async def update_order_item(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
         )
+
     result = await update_order_item_in_db(id, data, db)
     logger.info(
         "Order item updated successfully in update_order_item endpoint. item_id='{item_id}', order_id='{order_id}'",
@@ -242,12 +227,6 @@ async def delete_order_item(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(authentication_get_current_user),
 ):
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="DELETE",
-        status="attempt",
-    ).inc()
     logger.info(
         "Delete order item request received. item_id='{item_id}', user_id='{user_id}'",
         item_id=id,
@@ -302,6 +281,7 @@ async def delete_order_item(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
         )
+
     result = await delete_order_item_from_db(id, db)
     logger.info(
         "Order item deleted successfully in delete_order_item endpoint. item_id='{item_id}'",
