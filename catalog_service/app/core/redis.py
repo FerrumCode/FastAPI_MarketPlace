@@ -8,13 +8,13 @@ SERVICE_NAME = "catalog_service"
 
 # Метрики Redis
 REDIS_OPS = Counter(
-    "redis_ops",
+    "catalog_redis_ops",
     "Redis operations",
     ["service", "operation", "status"],
 )
 
 REDIS_CONNECTION_STATUS = Gauge(
-    "redis_connection_status",
+    "catalog_redis_connection_status",
     "Redis connection status (1=connected, 0=disconnected)",
     ["service"],
 )

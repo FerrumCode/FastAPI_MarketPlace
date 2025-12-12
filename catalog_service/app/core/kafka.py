@@ -8,13 +8,13 @@ from prometheus_client import Counter, Gauge
 SERVICE_NAME = "catalog_service"
 
 KAFKA_OPS = Counter(
-    "kafka_ops",
+    "catalog_kafka_ops",
     "Kafka producer operations",
     ["service", "operation", "status"],
 )
 
 KAFKA_CONNECTION_STATUS = Gauge(
-    "kafka_connection_status",
+    "catalog_kafka_connection_status",
     "Kafka producer connection status (1=connected, 0=disconnected)",
     ["service"],
 )

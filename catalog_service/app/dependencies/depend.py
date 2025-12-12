@@ -10,13 +10,13 @@ from env import SECRET_KEY, ALGORITHM, SERVICE_NAME
 bearer_scheme = HTTPBearer()
 
 JWT_ACCESS_VALIDATION_TOTAL = Counter(
-    "auth_jwt_access_validation_total",
+    "catalog_auth_jwt_access_validation_total",
     "Access JWT validation events",
     ["service", "result"],
 )
 
 PERMISSION_CHECKS_TOTAL = Counter(
-    "auth_permission_checks_total",
+    "catalog_auth_permission_checks_total",
     "Permission checks based on JWT",
     ["service", "permission", "result"],
 )
