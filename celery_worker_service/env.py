@@ -1,5 +1,7 @@
 import os
 
+SERVICE_NAME = os.getenv("SERVICE_NAME")
+
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://celery_worker_redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://celery_worker_redis:6379/1")
 
