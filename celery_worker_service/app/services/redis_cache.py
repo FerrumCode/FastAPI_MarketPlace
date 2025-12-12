@@ -15,6 +15,12 @@ RATES_CACHE_OPERATIONS_TOTAL = Counter(
     ["service", "operation", "result"],
 )
 
+RATES_CACHE_PARSE_ERRORS_TOTAL = Counter(
+    "rates_cache_parse_errors_total",
+    "Failed to parse cached exchange rate value",
+    ["service"],
+)
+
 
 def get_rate_from_cache(base: str, target: str) -> Optional[Decimal]:
     key = f"rates:{base.upper()}_{target.upper()}"
@@ -60,6 +66,9 @@ def get_rate_from_cache(base: str, target: str) -> Optional[Decimal]:
             service=SERVICE_NAME,
             operation="get",
             result="error",
+        ).inc()
+        RATES_CACHE_PARSE_ERRORS_TOTAL.labels(
+            service=SERVICE_NAME,
         ).inc()
         return None
 

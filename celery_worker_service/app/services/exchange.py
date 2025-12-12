@@ -63,15 +63,50 @@ def _fetch_rate_from_api(base: str, target: str) -> Decimal:
         target=target,
     ).inc()
 
-    response = requests.get(
-        EXCHANGE_RATES_API_BASE_URL,
-        params=params,
-        headers=headers,
-        timeout=EXCHANGE_RATES_API_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
 
-    data = response.json()
+    try:
+        response = requests.get(
+            EXCHANGE_RATES_API_BASE_URL,
+            params=params,
+            headers=headers,
+            timeout=EXCHANGE_RATES_API_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        EXCHANGE_RATE_API_REQUESTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            status="timeout",
+            base=base,
+            target=target,
+        ).inc()
+        raise
+    except requests.exceptions.HTTPError:
+        EXCHANGE_RATE_API_REQUESTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            status="http_error",
+            base=base,
+            target=target,
+        ).inc()
+        raise
+    except requests.exceptions.RequestException:
+        EXCHANGE_RATE_API_REQUESTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            status="request_error",
+            base=base,
+            target=target,
+        ).inc()
+        raise
+
+    try:
+        data = response.json()
+    except ValueError:
+        EXCHANGE_RATE_API_REQUESTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            status="json_error",
+            base=base,
+            target=target,
+        ).inc()
+        raise
 
     if not data.get("success", True):
         logger.error(
@@ -88,7 +123,18 @@ def _fetch_rate_from_api(base: str, target: str) -> Decimal:
         ).inc()
         raise RuntimeError(f"API error: {data}")
 
-    rate = data["rates"][target]
+
+    try:
+        rate = data["rates"][target]
+    except Exception:
+        EXCHANGE_RATE_API_REQUESTS_TOTAL.labels(
+            service=SERVICE_NAME,
+            status="missing_rate",
+            base=base,
+            target=target,
+        ).inc()
+        raise
+
     logger.info(
         "Exchange rate fetched successfully. base={base}, target={target}, rate={rate}",
         base=base,

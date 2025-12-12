@@ -92,6 +92,18 @@ TASKS_FAILED = Counter(
     ["task_name"],
 )
 
+TASKS_RETRIED = Counter(
+    "celery_tasks_retried_total",
+    "Number of Celery task executions that ended with RETRY state",
+    ["task_name"],
+)
+
+TASKS_FAILED_BY_EXCEPTION = Counter(
+    "celery_tasks_failed_by_exception_total",
+    "Number of Celery task failures by exception type",
+    ["task_name", "exc_type"],
+)
+
 TASKS_IN_PROGRESS = Gauge(
     "celery_tasks_in_progress",
     "Number of Celery tasks currently running",
@@ -159,6 +171,7 @@ def on_task_postrun(task_id=None, task=None, args=None, kwargs=None, retval=None
         duration = time.time() - start_time
         TASK_RUNTIME.labels(task_name=task_name).observe(duration)
     TASKS_IN_PROGRESS.labels(task_name=task_name).dec()
+
     if state == "SUCCESS":
         TASKS_SUCCEEDED.labels(task_name=task_name).inc()
         logger.info(
@@ -168,6 +181,9 @@ def on_task_postrun(task_id=None, task=None, args=None, kwargs=None, retval=None
             retval=retval,
         )
     else:
+        if state == "RETRY":
+            TASKS_RETRIED.labels(task_name=task_name).inc()
+
         logger.warning(
             "Task finished with state {state}: {task} [{id}]",
             state=state,
@@ -180,6 +196,10 @@ def on_task_postrun(task_id=None, task=None, args=None, kwargs=None, retval=None
 def on_task_failure(task_id=None, exception=None, args=None, kwargs=None, traceback=None, einfo=None, sender=None, **_):
     task_name = getattr(sender, "name", "unknown")
     TASKS_FAILED.labels(task_name=task_name).inc()
+
+    exc_type = type(exception).__name__ if exception is not None else "unknown"
+    TASKS_FAILED_BY_EXCEPTION.labels(task_name=task_name, exc_type=exc_type).inc()
+
     logger.error(
         "Task failed: {task} [{id}] - {exc}\n{einfo}",
         task=task_name,
