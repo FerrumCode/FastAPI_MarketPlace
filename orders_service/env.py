@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+SERVICE_NAME = os.getenv("SERVICE_NAME")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 DB_HOST = os.getenv("DB_HOST")
