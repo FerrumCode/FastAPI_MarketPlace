@@ -14,40 +14,10 @@ from prometheus_client import Counter
 from env import SERVICE_NAME
 
 
-REVIEWS_DB_CREATE_TOTAL = Counter(
-    "reviews_db_create_total",
-    "Database create review events",
-    ["service", "result"],
-)
-
-REVIEWS_DB_GET_FOR_PRODUCT_TOTAL = Counter(
-    "reviews_db_get_for_product_total",
-    "Database get reviews for product events",
-    ["service", "result"],
-)
-
-REVIEWS_DB_GET_ALL_TOTAL = Counter(
-    "reviews_db_get_all_total",
-    "Database get all reviews events",
-    ["service", "result"],
-)
-
-REVIEWS_DB_GET_BY_ID_TOTAL = Counter(
-    "reviews_db_get_by_id_total",
-    "Database get review by id events",
-    ["service", "result"],
-)
-
-REVIEWS_DB_UPDATE_TOTAL = Counter(
-    "reviews_db_update_total",
-    "Database update review events",
-    ["service", "result"],
-)
-
-REVIEWS_DB_DELETE_TOTAL = Counter(
-    "reviews_db_delete_total",
-    "Database delete review events",
-    ["service", "result"],
+REVIEWS_DB_REQUESTS_TOTAL = Counter(
+    "reviews_db_requests_total",
+    "Total DB requests for reviews (used to calculate RPS/RPM)",
+    ["service"],
 )
 
 
@@ -69,7 +39,6 @@ def _oid(review_id: str) -> ObjectId:
 def serialize(doc: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "id": str(doc["_id"]),
-
         "product_id": doc["product_id"],
         "user_id": doc["user_id"],
         "rating": doc["rating"],
@@ -80,6 +49,8 @@ def serialize(doc: Mapping[str, Any]) -> dict[str, Any]:
 
 
 async def create_review(user_id: str, data: ReviewCreate) -> dict:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
     doc = {
         "product_id": data.product_id,
@@ -89,7 +60,6 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
         "created_at": _now(),
         "updated_at": _now(),
     }
-    REVIEWS_DB_CREATE_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Attempt to create review in DB for product_id={product_id}, user_id={user_id}",
         product_id=data.product_id,
@@ -104,7 +74,6 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
             product_id=data.product_id,
             user_id=user_id,
         )
-        REVIEWS_DB_CREATE_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
         return serialize(doc)
     except DuplicateKeyError:
         logger.warning(
@@ -112,13 +81,13 @@ async def create_review(user_id: str, data: ReviewCreate) -> dict:
             product_id=data.product_id,
             user_id=user_id,
         )
-        REVIEWS_DB_CREATE_TOTAL.labels(service=SERVICE_NAME, result="duplicate").inc()
         raise HTTPException(status_code=409, detail="Review already exists; use PATCH to update")
 
 
 async def get_reviews_for_product(product_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
-    REVIEWS_DB_GET_FOR_PRODUCT_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Fetching reviews for product_id={product_id} from DB (limit={limit}, offset={offset})",
         product_id=product_id,
@@ -136,13 +105,13 @@ async def get_reviews_for_product(product_id: str, limit: int = 50, offset: int 
         count=len(result),
         product_id=product_id,
     )
-    REVIEWS_DB_GET_FOR_PRODUCT_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
     return result
 
 
 async def get_all_reviews(limit: int = 50, offset: int = 0) -> list[dict]:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
-    REVIEWS_DB_GET_ALL_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Fetching all reviews from DB (limit={limit}, offset={offset})",
         limit=limit,
@@ -154,13 +123,13 @@ async def get_all_reviews(limit: int = 50, offset: int = 0) -> list[dict]:
         "Fetched {count} review(s) from DB",
         count=len(result),
     )
-    REVIEWS_DB_GET_ALL_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
     return result
 
 
 async def get_review_by_id(review_id: str) -> dict:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
-    REVIEWS_DB_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Fetching review by id={review_id} from DB",
         review_id=review_id,
@@ -172,7 +141,6 @@ async def get_review_by_id(review_id: str) -> dict:
             "Invalid review id='{review_id}' in get_review_by_id",
             review_id=review_id,
         )
-        REVIEWS_DB_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, result="invalid_id").inc()
         raise HTTPException(status_code=400, detail="Invalid review id")
 
     doc = await col.find_one({"_id": _id})
@@ -181,19 +149,18 @@ async def get_review_by_id(review_id: str) -> dict:
             "Review not found in DB for id={review_id}",
             review_id=review_id,
         )
-        REVIEWS_DB_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, result="not_found").inc()
         raise HTTPException(status_code=404, detail="Review not found")
     logger.info(
         "Review fetched from DB for id={review_id}",
         review_id=review_id,
     )
-    REVIEWS_DB_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
     return serialize(doc)
 
 
 async def update_review(user_id: str, review_id: str, data: ReviewUpdate, can_update_others: bool) -> dict:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
-    REVIEWS_DB_UPDATE_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Attempting to update review_id={review_id} for user_id={user_id} (can_update_others={can_update_others})",
         review_id=review_id,
@@ -216,7 +183,6 @@ async def update_review(user_id: str, review_id: str, data: ReviewUpdate, can_up
             review_id=review_id,
             user_id=user_id,
         )
-        REVIEWS_DB_UPDATE_TOTAL.labels(service=SERVICE_NAME, result="nothing_to_update").inc()
         raise HTTPException(status_code=400, detail="Nothing to update")
 
     update_fields["updated_at"] = _now()
@@ -233,19 +199,18 @@ async def update_review(user_id: str, review_id: str, data: ReviewUpdate, can_up
             user_id=user_id,
             can_update_others=can_update_others,
         )
-        REVIEWS_DB_UPDATE_TOTAL.labels(service=SERVICE_NAME, result="not_found").inc()
         raise HTTPException(status_code=404, detail="Review not found")
     logger.info(
         "Review updated in DB: review_id={review_id}",
         review_id=review_id,
     )
-    REVIEWS_DB_UPDATE_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
     return serialize(doc)
 
 
 async def delete_review(user_id: str, review_id: str, can_delete_others: bool) -> dict:
+    REVIEWS_DB_REQUESTS_TOTAL.labels(service=SERVICE_NAME).inc()
+
     col = get_reviews_col()
-    REVIEWS_DB_DELETE_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
     logger.info(
         "Attempting to delete review_id={review_id} for user_id={user_id} (can_delete_others={can_delete_others})",
         review_id=review_id,
@@ -264,11 +229,9 @@ async def delete_review(user_id: str, review_id: str, can_delete_others: bool) -
             user_id=user_id,
             can_delete_others=can_delete_others,
         )
-        REVIEWS_DB_DELETE_TOTAL.labels(service=SERVICE_NAME, result="not_found").inc()
         raise HTTPException(status_code=404, detail="Review not found")
     logger.info(
         "Review deleted from DB: review_id={review_id}",
         review_id=review_id,
     )
-    REVIEWS_DB_DELETE_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
     return {"status": "deleted", "id": str(doc["_id"])}

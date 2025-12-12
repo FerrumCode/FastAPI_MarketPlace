@@ -13,9 +13,9 @@ HTTP_REQUESTS_TOTAL = Counter(
     ["service", "method", "path", "status_code"],
 )
 
-REQUEST_LATENCY_SECONDS = Histogram(
-    "latency_seconds",
-    "HTTP request latency in seconds",
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
     ["service", "method", "path"],
 )
 
@@ -54,7 +54,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     status_code=str(response.status_code),
                 ).inc()
 
-                REQUEST_LATENCY_SECONDS.labels(
+                HTTP_REQUEST_DURATION_SECONDS.labels(
                     service=SERVICE_NAME,
                     method=method,
                     path=path,

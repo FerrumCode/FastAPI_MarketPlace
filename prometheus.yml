@@ -11,3 +11,8 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['auth_service:8000']
+
+  - job_name: 'reviews_service'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['reviews_service:8000']

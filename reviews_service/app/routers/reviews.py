@@ -45,11 +45,6 @@ REVIEWS_DELETE_TOTAL = Counter(
     ["service", "status"],
 )
 
-REVIEWS_KAFKA_SEND_TOTAL = Counter(
-    "reviews_kafka_send_total",
-    "Kafka send events triggered from reviews router",
-    ["service", "result"],
-)
 
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
@@ -87,7 +82,7 @@ async def add_review(
             product_id=data["product_id"],
             user_id=data["user_id"],
         )
-        REVIEWS_KAFKA_SEND_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
+
         await kafka_producer.send_review_created({
             "event": "REVIEW_CREATED",
             "product_id": data["product_id"],
@@ -96,14 +91,13 @@ async def add_review(
             "text": data["text"],
             "review_id": data["id"],
         })
-        REVIEWS_KAFKA_SEND_TOTAL.labels(service=SERVICE_NAME, result="success").inc()
         logger.info(
             "REVIEW_CREATED event successfully sent to Kafka for review_id={review_id}",
             review_id=data["id"],
         )
     except Exception as e:
         logger.warning("Kafka send failed: {error}", error=e)
-        REVIEWS_KAFKA_SEND_TOTAL.labels(service=SERVICE_NAME, result="error").inc()
+
     return data
 
 
