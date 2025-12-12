@@ -14,19 +14,19 @@ bearer_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 JWT_ACCESS_VALIDATION_TOTAL = Counter(
-    "auth_jwt_access_validation_total",
+    "auth_auth_jwt_access_validation_total",
     "Access JWT validation events",
     ["service", "result"],
 )
 
 REFRESH_BLACKLIST_CHECKS_TOTAL = Counter(
-    "auth_refresh_blacklist_checks_total",
+    "auth_auth_refresh_blacklist_checks_total",
     "Refresh token blacklist checks",
     ["service", "result"],
 )
 
 PERMISSION_CHECKS_TOTAL = Counter(
-    "auth_permission_checks_total",
+    "auth_auth_permission_checks_total",
     "Permission checks based on JWT",
     ["service", "permission", "result"],
 )
