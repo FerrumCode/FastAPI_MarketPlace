@@ -9,13 +9,13 @@ from app.schemas.order import FinalOrderPatch, OrderOut
 
 
 ORDERS_REPO_REQUESTS_TOTAL = Counter(
-    "orders_repo_requests_total",
+    "celery_worker_orders_repo_requests_total",
     "HTTP requests from celery worker to Orders service",
     ["service", "method", "endpoint", "status"],
 )
 
 ORDERS_REPO_ERRORS_TOTAL = Counter(
-    "orders_repo_errors_total",
+    "celery_worker_orders_repo_errors_total",
     "Errors while calling Orders service from celery worker",
     ["service", "method", "endpoint", "error_type"],
 )

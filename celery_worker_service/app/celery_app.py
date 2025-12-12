@@ -75,43 +75,43 @@ def _start_metrics_http_server() -> None:
 
 
 TASKS_STARTED = Counter(
-    "celery_tasks_started_total",
+    "celery_worker_tasks_started_total",
     "Number of Celery tasks started",
     ["task_name"],
 )
 
 TASKS_SUCCEEDED = Counter(
-    "celery_tasks_succeeded_total",
+    "celery_worker_tasks_succeeded_total",
     "Number of Celery tasks succeeded",
     ["task_name"],
 )
 
 TASKS_FAILED = Counter(
-    "celery_tasks_failed_total",
+    "celery_worker_tasks_failed_total",
     "Number of Celery tasks failed",
     ["task_name"],
 )
 
 TASKS_RETRIED = Counter(
-    "celery_tasks_retried_total",
+    "celery_worker_tasks_retried_total",
     "Number of Celery task executions that ended with RETRY state",
     ["task_name"],
 )
 
 TASKS_FAILED_BY_EXCEPTION = Counter(
-    "celery_tasks_failed_by_exception_total",
+    "celery_worker_tasks_failed_by_exception_total",
     "Number of Celery task failures by exception type",
     ["task_name", "exc_type"],
 )
 
 TASKS_IN_PROGRESS = Gauge(
-    "celery_tasks_in_progress",
+    "celery_worker_tasks_in_progress",
     "Number of Celery tasks currently running",
     ["task_name"],
 )
 
 TASK_RUNTIME = Histogram(
-    "celery_task_runtime_seconds",
+    "celery_worker_task_runtime_seconds",
     "Celery task runtime in seconds",
     ["task_name"],
 )

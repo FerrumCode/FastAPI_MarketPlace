@@ -7,13 +7,13 @@ from env import SERVICE_NAME
 
 
 DELIVERY_CALCULATIONS_TOTAL = Counter(
-    "delivery_calculations_total",
+    "celery_worker_delivery_calculations_total",
     "Delivery price calculation events",
     ["service", "result"],
 )
 
 DELIVERY_PRICE_RUB = Histogram(
-    "delivery_price_rub",
+    "celery_worker_delivery_price_rub",
     "Calculated delivery prices in RUB",
     ["service"],
 )

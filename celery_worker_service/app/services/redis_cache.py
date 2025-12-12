@@ -10,13 +10,13 @@ from env import RATES_REDIS_URL, RATES_CACHE_TTL_SECONDS, SERVICE_NAME
 _redis = redis.Redis.from_url(RATES_REDIS_URL, decode_responses=True)
 
 RATES_CACHE_OPERATIONS_TOTAL = Counter(
-    "rates_cache_operations_total",
+    "celery_worker_rates_cache_operations_total",
     "Redis operations for exchange rates cache",
     ["service", "operation", "result"],
 )
 
 RATES_CACHE_PARSE_ERRORS_TOTAL = Counter(
-    "rates_cache_parse_errors_total",
+    "celery_worker_rates_cache_parse_errors_total",
     "Failed to parse cached exchange rate value",
     ["service"],
 )

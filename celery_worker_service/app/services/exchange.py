@@ -13,19 +13,19 @@ from env import (
 )
 
 EXCHANGE_RATE_API_REQUESTS_TOTAL = Counter(
-    "exchange_rate_api_requests_total",
+    "celery_worker_exchange_rate_api_requests_total",
     "External exchange rate API HTTP requests",
     ["service", "status", "base", "target"],
 )
 
 EXCHANGE_RATE_CACHE_TOTAL = Counter(
-    "exchange_rate_cache_total",
+    "celery_worker_exchange_rate_cache_total",
     "Exchange rate cache hits and misses",
     ["service", "result", "base", "target"],
 )
 
 EXCHANGE_RATE_UPDATE_ALL_TOTAL = Counter(
-    "exchange_rate_update_all_total",
+    "celery_worker_exchange_rate_update_all_total",
     "Calls to update_all_rates()",
     ["service"],
 )

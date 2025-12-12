@@ -8,25 +8,25 @@ from env import SERVICE_NAME  # >>> METRICS
 logger = logging.getLogger(__name__)
 
 RATES_TASK_RUNS_TOTAL = Counter(
-    "rates_task_runs_total",
+    "celery_worker_rates_task_runs_total",
     "Number of times rates.update_exchange_rates task was invoked",
     ["service"],
 )
 
 RATES_TASK_RESULTS_TOTAL = Counter(
-    "rates_task_results_total",
+    "celery_worker_rates_task_results_total",
     "Results of rates.update_exchange_rates task",
     ["service", "result"],
 )
 
 RATES_TASK_RETRIES_TOTAL = Counter(
-    "rates_task_retries_total",
+    "celery_worker_rates_task_retries_total",
     "Retries requested by rates.update_exchange_rates task",
     ["service", "reason"],
 )
 
 RATES_TASK_ERRORS_TOTAL = Counter(
-    "rates_task_errors_total",
+    "celery_worker_rates_task_errors_total",
     "Errors in rates.update_exchange_rates task by type",
     ["service", "error_type"],
 )

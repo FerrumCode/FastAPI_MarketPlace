@@ -12,19 +12,19 @@ from app.tasks.orders import process_order_created
 
 
 KAFKA_CONSUMER_START_TOTAL = Counter(
-    "kafka_consumer_start_total",
+    "celery_worker_kafka_consumer_start_total",
     "Kafka consumer start attempts",
     ["service", "status"],
 )
 
 KAFKA_CONSUMER_MESSAGES_TOTAL = Counter(
-    "kafka_consumer_messages_total",
+    "celery_worker_kafka_consumer_messages_total",
     "Kafka messages processed by consumer",
     ["service", "topic", "event_type", "result"],
 )
 
 KAFKA_CONSUMER_ERRORS_TOTAL = Counter(
-    "kafka_consumer_errors_total",
+    "celery_worker_kafka_consumer_errors_total",
     "Kafka consumer errors in main loop",
     ["service", "error_type"],
 )

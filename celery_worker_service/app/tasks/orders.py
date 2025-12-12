@@ -16,57 +16,57 @@ logger = logging.getLogger(__name__)
 
 
 ORDERS_TASK_RUNS_TOTAL = Counter(
-    "orders_task_runs_total",
+    "celery_worker_orders_task_runs_total",
     "Number of times orders.process_order_created task was invoked",
     ["service"],
 )
 
 ORDERS_TASK_RESULTS_TOTAL = Counter(
-    "orders_task_results_total",
+    "celery_worker_orders_task_results_total",
     "Results of orders.process_order_created task",
     ["service", "result"],
 )
 
 ORDERS_TASK_RETRIES_TOTAL = Counter(
-    "orders_task_retries_total",
+    "celery_worker_orders_task_retries_total",
     "Retries requested by orders.process_order_created task",
     ["service", "reason"],
 )
 
 
 ORDERS_TASK_ERRORS_TOTAL = Counter(
-    "orders_task_errors_total",
+    "celery_worker_orders_task_errors_total",
     "Errors in orders.process_order_created task by type",
     ["service", "error_type"],
 )
 
 
 ORDERS_CART_PRICE_RUB = Histogram(
-    "orders_cart_price_rub",
+    "celery_worker_orders_cart_price_rub",
     "Calculated cart price (RUB) in orders.process_order_created",
     ["service"],
 )
 
 ORDERS_DELIVERY_PRICE_RUB = Histogram(
-    "orders_delivery_price_rub",
+    "celery_worker_orders_delivery_price_rub",
     "Calculated delivery price (RUB) in orders.process_order_created",
     ["service"],
 )
 
 ORDERS_TOTAL_PRICE_RUB = Histogram(
-    "orders_total_price_rub",
+    "celery_worker_orders_total_price_rub",
     "Calculated total price (RUB) in orders.process_order_created",
     ["service"],
 )
 
 ORDERS_TOTAL_QUANTITY = Histogram(
-    "orders_total_quantity",
+    "celery_worker_orders_total_quantity",
     "Total item quantity in orders.process_order_created",
     ["service"],
 )
 
 ORDERS_ITEMS_COUNT = Histogram(
-    "orders_items_count",
+    "celery_worker_orders_items_count",
     "Number of distinct items in ORDER_CREATED event",
     ["service"],
 )
