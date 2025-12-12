@@ -8,13 +8,13 @@ from env import SERVICE_NAME
 
 
 HTTP_REQUESTS_TOTAL = Counter(
-    "http_requests_total",
+    "orders_http_requests_total",
     "Total HTTP requests",
     ["service", "method", "path", "status_code"],
 )
 
 REQUEST_LATENCY_SECONDS = Histogram(
-    "latency_seconds",
+    "orders_latency_seconds",
     "HTTP request latency in seconds",
     ["service", "method", "path"],
 )

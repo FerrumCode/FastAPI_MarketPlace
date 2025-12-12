@@ -8,7 +8,7 @@ from prometheus_client import Counter
 from env import CATALOG_SERVICE_URL, SERVICE_NAME
 
 CATALOG_FETCH_PRODUCT_TOTAL = Counter(
-    "catalog_fetch_product_total",
+    "orders_catalog_fetch_product_total",
     "Fetch product requests to Catalog Service",
     ["service", "status"],
 )

@@ -20,7 +20,7 @@ from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
 from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE, SERVICE_NAME
 
 ORDERS_DB_OPERATIONS_TOTAL = Counter(
-    "orders_db_operations_total",
+    "orders_orders_db_operations_total",
     "Orders DB operations",
     ["service", "operation", "status"],
 )

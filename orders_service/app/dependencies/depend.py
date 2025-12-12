@@ -12,13 +12,13 @@ from app.service.orders import get_order as svc_get_order
 bearer_scheme = HTTPBearer()
 
 AUTH_TOKEN_VALIDATION_TOTAL = Counter(
-    "auth_token_validation_total",
+    "orders_auth_token_validation_total",
     "Authentication token validation events in Orders service",
     ["service", "result"],
 )
 
 PERMISSION_CHECK_TOTAL = Counter(
-    "permission_check_total",
+    "orders_permission_check_total",
     "Permission check events in Orders service",
     ["service", "permission", "result"],
 )

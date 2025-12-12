@@ -35,7 +35,7 @@ from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE, SERVICE_NAME
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 ORDERS_API_REQUESTS_TOTAL = Counter(
-    "orders_api_requests_total",
+    "orders_orders_api_requests_total",
     "Orders API request events",
     ["service", "endpoint", "method", "status"],
 )

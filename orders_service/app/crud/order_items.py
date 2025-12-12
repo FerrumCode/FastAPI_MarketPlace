@@ -13,7 +13,7 @@ from app.core.kafka import send_kafka_event
 from env import KAFKA_ORDER_TOPIC, SERVICE_NAME
 
 ORDER_ITEMS_DB_OPERATIONS_TOTAL = Counter(
-    "order_items_db_operations_total",
+    "orders_order_items_db_operations_total",
     "Order items DB operations",
     ["service", "operation", "status"],
 )

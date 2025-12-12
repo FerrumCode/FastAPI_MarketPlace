@@ -22,7 +22,7 @@ from env import SERVICE_NAME
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
 ORDER_ITEMS_API_REQUESTS_TOTAL = Counter(
-    "order_items_api_requests_total",
+    "orders_order_items_api_requests_total",
     "Order items CRUD API request events",
     ["service", "endpoint", "method", "status"],
 )
