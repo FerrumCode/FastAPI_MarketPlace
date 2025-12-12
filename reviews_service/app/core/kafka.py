@@ -8,19 +8,19 @@ from prometheus_client import Counter
 
 
 KAFKA_PRODUCER_START_TOTAL = Counter(
-    "kafka_producer_start_total",
+    "reviews_kafka_producer_start_total",
     "Kafka producer start events",
     ["service", "result"],
 )
 
 KAFKA_PRODUCER_STOP_TOTAL = Counter(
-    "kafka_producer_stop_total",
+    "reviews_kafka_producer_stop_total",
     "Kafka producer stop events",
     ["service", "result"],
 )
 
 KAFKA_SEND_TOTAL = Counter(
-    "kafka_send_total",
+    "reviews_kafka_send_total",
     "Kafka send events",
     ["service", "result"],
 )

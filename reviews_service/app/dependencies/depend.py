@@ -10,13 +10,13 @@ bearer_scheme = HTTPBearer()
 
 
 AUTH_TOKEN_VALIDATION_TOTAL = Counter(
-    "auth_token_validation_total",
+    "reviews_auth_token_validation_total",
     "Token validation events",
     ["service", "result"],
 )
 
 AUTH_PERMISSION_CHECK_TOTAL = Counter(
-    "auth_permission_check_total",
+    "reviews_auth_permission_check_total",
     "Permission check events",
     ["service", "result", "permission"],
 )
