@@ -46,7 +46,6 @@ REVIEWS_DELETE_TOTAL = Counter(
 )
 
 
-
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
@@ -60,7 +59,6 @@ async def add_review(
     payload: ReviewCreate,
     current_user=Depends(authentication_get_current_user),
 ):
-    REVIEWS_CREATE_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Attempt to create review for product_id={product_id} by user_id={user_id}",
         product_id=payload.product_id,
@@ -83,14 +81,16 @@ async def add_review(
             user_id=data["user_id"],
         )
 
-        await kafka_producer.send_review_created({
-            "event": "REVIEW_CREATED",
-            "product_id": data["product_id"],
-            "user_id": data["user_id"],
-            "rating": data["rating"],
-            "text": data["text"],
-            "review_id": data["id"],
-        })
+        await kafka_producer.send_review_created(
+            {
+                "event": "REVIEW_CREATED",
+                "product_id": data["product_id"],
+                "user_id": data["user_id"],
+                "rating": data["rating"],
+                "text": data["text"],
+                "review_id": data["id"],
+            }
+        )
         logger.info(
             "REVIEW_CREATED event successfully sent to Kafka for review_id={review_id}",
             review_id=data["id"],
@@ -105,16 +105,17 @@ async def add_review(
 async def get_reviews(
     product_id: str,
     limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
 ):
-    REVIEWS_GET_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Request to get reviews for product_id={product_id}, limit={limit}, offset={offset}",
         product_id=product_id,
         limit=limit,
         offset=offset,
     )
-    data = await svc.get_reviews_for_product(product_id=product_id, limit=limit, offset=offset)
+    data = await svc.get_reviews_for_product(
+        product_id=product_id, limit=limit, offset=offset
+    )
     logger.info(
         "Retrieved {count} review(s) for product_id={product_id}",
         count=len(data),
@@ -126,7 +127,6 @@ async def get_reviews(
 
 @router.get("/by-id/{review_id}", response_model=ReviewOut)
 async def get_review_by_id(review_id: str):
-    REVIEWS_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Request to get review by id={review_id}",
         review_id=review_id,
@@ -150,7 +150,6 @@ async def patch_review(
     payload: ReviewUpdate,
     current_user=Depends(authentication_get_current_user),
 ):
-    REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Attempt to patch review_id={review_id} by user_id={user_id}",
         review_id=review_id,
@@ -173,7 +172,10 @@ async def patch_review(
             review_id=review_id,
         )
         REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="no_owner").inc()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Review has no owner",
+        )
 
     current_user_uuid = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
@@ -188,6 +190,7 @@ async def patch_review(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
         )
+
     result = await svc.update_review(
         user_id=str(current_user["id"]),
         review_id=review_id,
@@ -211,7 +214,6 @@ async def delete_review(
     review_id: str,
     current_user=Depends(authentication_get_current_user),
 ):
-    REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Attempt to delete review_id={review_id} by user_id={user_id}",
         review_id=review_id,
@@ -234,7 +236,10 @@ async def delete_review(
             review_id=review_id,
         )
         REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="no_owner").inc()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Review has no owner")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Review has no owner",
+        )
 
     current_user_uuid = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
@@ -249,6 +254,7 @@ async def delete_review(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
         )
+
     result = await svc.delete_review(
         user_id=str(current_user["id"]),
         review_id=review_id,
