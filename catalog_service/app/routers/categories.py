@@ -27,17 +27,14 @@ CATEGORIES_OPERATIONS_TOTAL = Counter(
 )
 
 
-@router.get("/",
-            response_model=list[CategoryRead])
-async def get_all_categories(db: AsyncSession = Depends(get_db),
-                             redis: Redis = Depends(get_redis),
-                             user=Depends(authentication_get_current_user)):
+
+@router.get("/", response_model=list[CategoryRead])
+async def get_all_categories(
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    user=Depends(authentication_get_current_user),
+):
     operation = "list"
-    CATEGORIES_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info("Request to GET all categories")
 
     try:
@@ -62,18 +59,17 @@ async def get_all_categories(db: AsyncSession = Depends(get_db),
         raise
 
 
-@router.post("/",
-             dependencies=[Depends(permission_required("can_create_category"))],
-             response_model=CategoryRead)
-async def create_category(category: CategoryCreate,
-                          db: AsyncSession = Depends(get_db),
-                          redis: Redis = Depends(get_redis)):
+@router.post(
+    "/",
+    dependencies=[Depends(permission_required("can_create_category"))],
+    response_model=CategoryRead,
+)
+async def create_category(
+    category: CategoryCreate,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
     operation = "create"
-    CATEGORIES_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to CREATE category with name='{name}'",
         name=category.name,
@@ -102,19 +98,18 @@ async def create_category(category: CategoryCreate,
         raise
 
 
-@router.put("/{id}",
-            dependencies=[Depends(permission_required("can_update_category"))],
-            response_model=CategoryRead)
-async def update_category(id: str,
-                          data: CategoryUpdate,
-                          db: AsyncSession = Depends(get_db),
-                          redis: Redis = Depends(get_redis)):
+@router.put(
+    "/{id}",
+    dependencies=[Depends(permission_required("can_update_category"))],
+    response_model=CategoryRead,
+)
+async def update_category(
+    id: str,
+    data: CategoryUpdate,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
     operation = "update"
-    CATEGORIES_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to UPDATE category with id={id}",
         id=id,
@@ -146,17 +141,16 @@ async def update_category(id: str,
         raise
 
 
-@router.delete("/{id}",
-               dependencies=[Depends(permission_required("can_delete_category"))],)
-async def delete_category(id: str,
-                          db: AsyncSession = Depends(get_db),
-                          redis: Redis = Depends(get_redis)):
+@router.delete(
+    "/{id}",
+    dependencies=[Depends(permission_required("can_delete_category"))],
+)
+async def delete_category(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
     operation = "delete"
-    CATEGORIES_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to DELETE category with id={id}",
         id=id,

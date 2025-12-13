@@ -10,8 +10,13 @@ from app.models.product import Product
 from app.db_depends import get_db
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.core.kafka import send_kafka_event
-from app.crud.products import (get_all_products_from_db, create_product_in_db, update_product_in_db,
-                               get_product_from_db, delete_product_form_db)
+from app.crud.products import (
+    get_all_products_from_db,
+    create_product_in_db,
+    update_product_in_db,
+    get_product_from_db,
+    delete_product_form_db,
+)
 from app.dependencies.depend import authentication_get_current_user, permission_required
 
 
@@ -25,14 +30,11 @@ PRODUCTS_OPERATIONS_TOTAL = Counter(
 
 
 @router.get("/", response_model=list[ProductRead])
-async def get_all_products(db: AsyncSession = Depends(get_db),
-                           user = Depends(authentication_get_current_user)):
+async def get_all_products(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(authentication_get_current_user),
+):
     operation = "list"
-    PRODUCTS_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info("Request to GET all products")
 
     try:
@@ -58,15 +60,12 @@ async def get_all_products(db: AsyncSession = Depends(get_db),
 
 
 @router.get("/{id}", response_model=ProductRead)
-async def get_product(id: str,
-                      db: AsyncSession = Depends(get_db),
-                      user = Depends(authentication_get_current_user)):
+async def get_product(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(authentication_get_current_user),
+):
     operation = "get"
-    PRODUCTS_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to GET product with id={id}",
         id=id,
@@ -97,17 +96,16 @@ async def get_product(id: str,
         raise
 
 
-@router.post("/",
-             dependencies=[Depends(permission_required("can_create_product"))],
-             response_model=ProductRead)
-async def create_product(data: ProductCreate,
-                         db: AsyncSession = Depends(get_db)):
+@router.post(
+    "/",
+    dependencies=[Depends(permission_required("can_create_product"))],
+    response_model=ProductRead,
+)
+async def create_product(
+    data: ProductCreate,
+    db: AsyncSession = Depends(get_db),
+):
     operation = "create"
-    PRODUCTS_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to CREATE product with data={data}",
         data=data.dict(),
@@ -135,18 +133,17 @@ async def create_product(data: ProductCreate,
         raise
 
 
-@router.put("/{id}",
-            dependencies=[Depends(permission_required("can_update_product"))],
-            response_model=ProductRead)
-async def update_product(id: str,
-                         data: ProductUpdate,
-                         db: AsyncSession = Depends(get_db)):
+@router.put(
+    "/{id}",
+    dependencies=[Depends(permission_required("can_update_product"))],
+    response_model=ProductRead,
+)
+async def update_product(
+    id: str,
+    data: ProductUpdate,
+    db: AsyncSession = Depends(get_db),
+):
     operation = "update"
-    PRODUCTS_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to UPDATE product with id={id}",
         id=id,
@@ -177,16 +174,15 @@ async def update_product(id: str,
         raise
 
 
-@router.delete("/{id}",
-               dependencies=[Depends(permission_required("can_delete_product"))])
-async def delete_product(id: str,
-                         db: AsyncSession = Depends(get_db)):
+@router.delete(
+    "/{id}",
+    dependencies=[Depends(permission_required("can_delete_product"))],
+)
+async def delete_product(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+):
     operation = "delete"
-    PRODUCTS_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        operation=operation,
-        status="attempt",
-    ).inc()
     logger.info(
         "Request to DELETE product with id={id}",
         id=id,
