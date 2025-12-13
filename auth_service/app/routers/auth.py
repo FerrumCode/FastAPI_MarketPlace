@@ -63,7 +63,6 @@ AUTH_BLACKLIST_OPERATIONS_TOTAL = Counter(
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser):
-    AUTH_REGISTRATIONS_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Attempt to register user with name '{name}' and email='{email}'",
         name=create_user.name,
@@ -109,40 +108,41 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="attempt").inc()
     logger.info(
         "Login attempt for user '{username}'",
         username=form_data.username,
     )
+
     try:
         user = await authenticate_user(db, form_data.username, form_data.password)
+
+        access_token = await create_access_token(
+            user.name, user.id, user.role_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        refresh_token = await create_refresh_token(
+            user.id, user.name, user.role_id, redis_client
+        )
+        logger.info(
+            "User '{username}' successfully logged in. user_id={user_id}, role_id={role_id}",
+            username=user.name,
+            user_id=user.id,
+            role_id=user.role_id,
+        )
+
+        AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+
     except HTTPException:
         AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="http_error").inc()
         raise
     except Exception:
         AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="error").inc()
         raise
-
-    access_token = await create_access_token(
-        user.name, user.id, user.role_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    refresh_token = await create_refresh_token(
-        user.id, user.name, user.role_id, redis_client
-    )
-    logger.info(
-        "User '{username}' successfully logged in. user_id={user_id}, role_id={role_id}",
-        username=user.name,
-        user_id=user.id,
-        role_id=user.role_id,
-    )
-
-    AUTH_LOGINS_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
-
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
 
 
 @router.get("/me",
@@ -210,7 +210,6 @@ async def refresh(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to refresh access token using refresh token")
-    AUTH_TOKEN_REFRESH_TOTAL.labels(service=SERVICE_NAME, result="attempt").inc()
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -302,11 +301,6 @@ async def blacklisting(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to add refresh token to blacklist")
-    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        action="add",
-        result="attempt",
-    ).inc()
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         exp = payload.get("exp")
@@ -371,11 +365,6 @@ async def remove(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     logger.info("Attempt to remove refresh token from blacklist")
-    AUTH_BLACKLIST_OPERATIONS_TOTAL.labels(
-        service=SERVICE_NAME,
-        action="remove",
-        result="attempt",
-    ).inc()
 
     deleted = await redis_client.delete(f"bl_refresh_{refresh_token}")
     if deleted == 0:
