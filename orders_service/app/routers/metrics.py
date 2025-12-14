@@ -5,8 +5,6 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from app.dependencies.depend import permission_required
 
 
-# CHANGED: prefix="/" убран, чтобы не получить //metrics
-# CHANGED: include_in_schema=False чтобы не светить /metrics в Swagger
 router = APIRouter(tags=["Metrics"], include_in_schema=True)
 
 
