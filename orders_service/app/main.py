@@ -1,12 +1,11 @@
 import uvicorn, sys
 from fastapi import FastAPI
-from fastapi.responses import Response
 from loguru import logger
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.core.kafka import kafka_producer
 from app.routers import orders as orders_router
 from app.routers import orders_items_crud as order_items_router
+from app.routers import metrics as metrics_router
 from app.middleware.logging import LoggingMiddleware
 
 
@@ -42,13 +41,9 @@ async def shutdown():
     logger.info("Application shutdown completed")
 
 
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-
 app.add_middleware(LoggingMiddleware)
 
+app.include_router(metrics_router.router)  # /metrics
 app.include_router(orders_router.router)
 app.include_router(order_items_router.router)
 

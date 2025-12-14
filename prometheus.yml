@@ -14,5 +14,6 @@ scrape_configs:
 
   - job_name: 'orders_service'
     metrics_path: /metrics
+    bearer_token_file: /etc/prometheus/secrets/orders_metrics_jwt
     static_configs:
       - targets: ['orders_service:8000']
