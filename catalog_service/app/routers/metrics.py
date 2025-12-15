@@ -8,6 +8,6 @@ from app.dependencies.depend import permission_required
 router = APIRouter(tags=["Metrics"], include_in_schema=True)
 
 
-@router.get("/metrics", dependencies=[Depends(permission_required("can_patch_order_status"))])
+@router.get("/metrics", dependencies=[Depends(permission_required("can_metrics"))])
 async def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
