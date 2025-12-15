@@ -5,7 +5,7 @@ from fastapi.responses import Response
 from loguru import logger
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
-from app.routers import categories, products
+from app.routers import categories, products, metrics
 from app.core.redis import init_redis, close_redis
 from app.core.kafka import init_kafka, close_kafka
 from app.middleware.logging import LoggingMiddleware
@@ -41,13 +41,10 @@ async def shutdown():
     logger.info("Application shutdown completed")
 
 
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
 
 app.add_middleware(LoggingMiddleware)
 
+app.include_router(metrics.router)
 app.include_router(categories.router)
 app.include_router(products.router)
 
