@@ -5,29 +5,31 @@ from typing import Any, Dict
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import GroupCoordinatorNotAvailableError, KafkaError
 from loguru import logger
-from prometheus_client import Counter
+#from prometheus_client import Counter
 
 from env import KAFKA_BROKER, KAFKA_ORDER_TOPIC, KAFKA_CONSUMER_GROUP_ID, SERVICE_NAME
 from app.tasks.orders import process_order_created
+from app.core.metrics import KAFKA_CONSUMER_START_TOTAL, KAFKA_CONSUMER_MESSAGES_TOTAL, KAFKA_CONSUMER_ERRORS_TOTAL
 
 
-KAFKA_CONSUMER_START_TOTAL = Counter(
-    "celery_worker_kafka_consumer_start_total",
-    "Kafka consumer start attempts",
-    ["service", "status"],
-)
 
-KAFKA_CONSUMER_MESSAGES_TOTAL = Counter(
-    "celery_worker_kafka_consumer_messages_total",
-    "Kafka messages processed by consumer",
-    ["service", "topic", "event_type", "result"],
-)
-
-KAFKA_CONSUMER_ERRORS_TOTAL = Counter(
-    "celery_worker_kafka_consumer_errors_total",
-    "Kafka consumer errors in main loop",
-    ["service", "error_type"],
-)
+# KAFKA_CONSUMER_START_TOTAL = Counter(
+#     "celery_worker_kafka_consumer_start_total",
+#     "Kafka consumer start attempts",
+#     ["service", "status"],
+# )
+#
+# KAFKA_CONSUMER_MESSAGES_TOTAL = Counter(
+#     "celery_worker_kafka_consumer_messages_total",
+#     "Kafka messages processed by consumer",
+#     ["service", "topic", "event_type", "result"],
+# )
+#
+# KAFKA_CONSUMER_ERRORS_TOTAL = Counter(
+#     "celery_worker_kafka_consumer_errors_total",
+#     "Kafka consumer errors in main loop",
+#     ["service", "error_type"],
+# )
 
 
 async def _consume_once() -> None:

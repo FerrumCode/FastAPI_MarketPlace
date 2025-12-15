@@ -1,22 +1,23 @@
 from decimal import Decimal, ROUND_HALF_UP
 
 from loguru import logger
-from prometheus_client import Counter, Histogram
+#from prometheus_client import Counter, Histogram
 
 from env import SERVICE_NAME
+from app.core.metrics import DELIVERY_CALCULATIONS_TOTAL, DELIVERY_PRICE_RUB
 
 
-DELIVERY_CALCULATIONS_TOTAL = Counter(
-    "celery_worker_delivery_calculations_total",
-    "Delivery price calculation events",
-    ["service", "result"],
-)
-
-DELIVERY_PRICE_RUB = Histogram(
-    "celery_worker_delivery_price_rub",
-    "Calculated delivery prices in RUB",
-    ["service"],
-)
+# DELIVERY_CALCULATIONS_TOTAL = Counter(
+#     "celery_worker_delivery_calculations_total",
+#     "Delivery price calculation events",
+#     ["service", "result"],
+# )
+#
+# DELIVERY_PRICE_RUB = Histogram(
+#     "celery_worker_delivery_price_rub",
+#     "Calculated delivery prices in RUB",
+#     ["service"],
+# )
 
 
 def _money(x: Decimal) -> Decimal:
