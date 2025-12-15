@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import jwt
 import redis.asyncio as redis
 from loguru import logger
-from prometheus_client import Counter
 
 from app.models.user import User
 from app.models.role import Role
@@ -28,37 +27,16 @@ from app.utils import (
     create_refresh_token,
     authenticate_user,
 )
-
 from env import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SERVICE_NAME
-
+from app.core.metrics import (
+    AUTH_REGISTRATIONS_TOTAL,
+    AUTH_LOGINS_TOTAL,
+    AUTH_TOKEN_REFRESH_TOTAL,
+    AUTH_BLACKLIST_OPERATIONS_TOTAL,
+)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-AUTH_REGISTRATIONS_TOTAL = Counter(
-    "auth_registrations_total",
-    "User registration events",
-    ["service", "status"],
-)
-
-AUTH_LOGINS_TOTAL = Counter(
-    "auth_logins_total",
-    "User login events",
-    ["service", "status"],
-)
-
-AUTH_TOKEN_REFRESH_TOTAL = Counter(
-    "auth_token_refresh_total",
-    "Token refresh events",
-    ["service", "result"],
-)
-
-AUTH_BLACKLIST_OPERATIONS_TOTAL = Counter(
-    "auth_blacklist_operations_total",
-    "Refresh token blacklist operations",
-    ["service", "action", "result"],
-)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)

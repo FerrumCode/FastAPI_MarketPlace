@@ -3,21 +3,8 @@ import time
 from loguru import logger
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from prometheus_client import Counter, Histogram
+from app.core.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION_SECONDS
 from env import SERVICE_NAME
-
-
-HTTP_REQUESTS_TOTAL = Counter(
-    "auth_http_requests_total",
-    "Total HTTP requests",
-    ["service", "method", "path", "status_code"],
-)
-
-HTTP_REQUEST_DURATION_SECONDS = Histogram(
-    "auth_http_request_duration_seconds",
-    "HTTP request latency in seconds",
-    ["service", "method", "path"],
-)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

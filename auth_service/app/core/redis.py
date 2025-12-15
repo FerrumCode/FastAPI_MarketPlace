@@ -1,24 +1,10 @@
 from fastapi import FastAPI
 import redis.asyncio as redis
 from loguru import logger
-from prometheus_client import Counter, Gauge
+from app.core.metrics import REDIS_OPS, REDIS_CONNECTION_STATUS
+
 
 SERVICE_NAME = "auth_service"
-
-
-REDIS_OPS = Counter(
-    "auth_redis_ops",
-    "Redis operations",
-    ["service", "operation", "status"],
-)
-
-
-REDIS_CONNECTION_STATUS = Gauge(
-    "auth_redis_connection_status",
-    "Redis connection status (1=connected, 0=disconnected)",
-    ["service"],
-)
-
 redis_client: redis.Redis | None = None
 
 
