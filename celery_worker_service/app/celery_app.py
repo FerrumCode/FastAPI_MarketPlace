@@ -22,7 +22,6 @@ from prometheus_client import multiprocess
 from prometheus_client.exposition import MetricsHandler
 
 
-os.environ["PROMETHEUS_MULTIPROC_DIR"] = PROMETHEUS_MULTIPROC_DIR
 _METRICS_SERVER_STARTED = False
 _TASK_START_TIMES = {}
 

@@ -28,3 +28,5 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9000"))
 PROMETHEUS_MULTIPROC_DIR = os.getenv("PROMETHEUS_MULTIPROC_DIR", "/tmp/celery_prometheus_multiproc")
 METRICS_BEARER_TOKEN_FILE = os.getenv("METRICS_BEARER_TOKEN_FILE", "/run/secrets/celery_worker_metrics.jwt")
+
+os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", PROMETHEUS_MULTIPROC_DIR)
