@@ -6,7 +6,6 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from loguru import logger
-from prometheus_client import Counter
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,14 +15,10 @@ from app.core.kafka import send_kafka_event
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusPatch
+from app.core.metrics import ORDERS_DB_OPERATIONS_TOTAL
 
 from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE, SERVICE_NAME
 
-ORDERS_DB_OPERATIONS_TOTAL = Counter(
-    "orders_orders_db_operations_total",
-    "Orders DB operations",
-    ["service", "operation", "status"],
-)
 
 
 def _money(x: Decimal) -> Decimal:

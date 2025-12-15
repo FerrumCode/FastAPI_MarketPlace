@@ -3,15 +3,10 @@ from uuid import UUID
 import httpx
 from fastapi import HTTPException
 from loguru import logger
-from prometheus_client import Counter
 
 from env import CATALOG_SERVICE_URL, SERVICE_NAME
+from app.core.metrics import CATALOG_FETCH_PRODUCT_TOTAL
 
-CATALOG_FETCH_PRODUCT_TOTAL = Counter(
-    "orders_catalog_fetch_product_total",
-    "Fetch product requests to Catalog Service",
-    ["service", "status"],
-)
 
 
 async def fetch_product(product_id: UUID, auth_header: str | None = None) -> dict:

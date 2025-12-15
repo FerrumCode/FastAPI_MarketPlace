@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from loguru import logger
-from prometheus_client import Counter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,12 +10,8 @@ from app.models.order import Order
 from app.schemas.order_item import OrderItemCreate, OrderItemRead, OrderItemUpdate
 from app.core.kafka import send_kafka_event
 from env import KAFKA_ORDER_TOPIC, SERVICE_NAME
+from app.core.metrics import ORDER_ITEMS_DB_OPERATIONS_TOTAL
 
-ORDER_ITEMS_DB_OPERATIONS_TOTAL = Counter(
-    "orders_order_items_db_operations_total",
-    "Order items DB operations",
-    ["service", "operation", "status"],
-)
 
 
 async def get_order_item_from_db(id: str, db: AsyncSession):

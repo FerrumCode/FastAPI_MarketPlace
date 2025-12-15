@@ -1,29 +1,10 @@
 import json
 from typing import Any, Optional
-
 from aiokafka import AIOKafkaProducer
 from loguru import logger
-from prometheus_client import Counter
-
 from env import KAFKA_BROKER, SERVICE_NAME
+from app.core.metrics import KAFKA_PRODUCER_START_TOTAL, KAFKA_PRODUCER_STOP_TOTAL, KAFKA_PRODUCER_MESSAGES_TOTAL
 
-KAFKA_PRODUCER_START_TOTAL = Counter(
-    "orders_kafka_producer_start_total",
-    "Kafka producer start events",
-    ["service", "result"],
-)
-
-KAFKA_PRODUCER_STOP_TOTAL = Counter(
-    "orders_kafka_producer_stop_total",
-    "Kafka producer stop events",
-    ["service", "result"],
-)
-
-KAFKA_PRODUCER_MESSAGES_TOTAL = Counter(
-    "orders_kafka_producer_messages_total",
-    "Kafka producer send events",
-    ["service", "result"],
-)
 
 
 class KafkaProducer:

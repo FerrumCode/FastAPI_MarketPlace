@@ -7,7 +7,6 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from loguru import logger
-from prometheus_client import Counter
 from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,12 +15,8 @@ from app.core.clients import fetch_product
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from env import SERVICE_NAME
+from app.core.metrics import ORDERS_SERVICE_OPERATIONS_TOTAL
 
-ORDERS_SERVICE_OPERATIONS_TOTAL = Counter(
-    "orders_service_operations_total",
-    "Order service operations",
-    ["service", "operation", "status"],
-)
 
 
 def _to_money(value: Decimal) -> Decimal:

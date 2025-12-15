@@ -2,26 +2,15 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from loguru import logger
-from prometheus_client import Counter
 
 from env import SECRET_KEY, ALGORITHM, SERVICE_NAME
 
 from app.db_depends import get_db
 from app.service.orders import get_order as svc_get_order
+from app.core.metrics import AUTH_TOKEN_VALIDATION_TOTAL, PERMISSION_CHECK_TOTAL
+
 
 bearer_scheme = HTTPBearer()
-
-AUTH_TOKEN_VALIDATION_TOTAL = Counter(
-    "orders_auth_token_validation_total",
-    "Authentication token validation events in Orders service",
-    ["service", "result"],
-)
-
-PERMISSION_CHECK_TOTAL = Counter(
-    "orders_permission_check_total",
-    "Permission check events in Orders service",
-    ["service", "permission", "result"],
-)
 
 
 def authentication_get_current_user(

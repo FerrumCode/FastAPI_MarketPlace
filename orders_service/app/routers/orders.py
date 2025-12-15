@@ -5,7 +5,6 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
-from prometheus_client import Counter
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -31,14 +30,11 @@ from app.service.orders import (
     update_order_status as svc_update_order_status,
 )
 from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE, SERVICE_NAME
+from app.core.metrics import ORDERS_API_REQUESTS_TOTAL
+
+
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
-
-ORDERS_API_REQUESTS_TOTAL = Counter(
-    "orders_orders_api_requests_total",
-    "Orders API request events",
-    ["service", "endpoint", "method", "status"],
-)
 
 
 @router.post(

@@ -2,7 +2,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-from prometheus_client import Counter
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -18,15 +17,11 @@ from app.crud.order_items import (
 )
 from app.dependencies.depend import authentication_get_current_user, permission_required
 from env import SERVICE_NAME
+from app.core.metrics import ORDER_ITEMS_API_REQUESTS_TOTAL
+
+
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
-
-ORDER_ITEMS_API_REQUESTS_TOTAL = Counter(
-    "orders_order_items_api_requests_total",
-    "Order items CRUD API request events",
-    ["service", "endpoint", "method", "status"],
-)
-
 
 
 @router.get(
