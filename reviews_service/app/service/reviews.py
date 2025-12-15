@@ -10,15 +10,9 @@ from bson.errors import InvalidId
 from app.db import get_reviews_col
 from app.schemas.review import ReviewCreate, ReviewUpdate
 from loguru import logger
-from prometheus_client import Counter
 from env import SERVICE_NAME
+from app.core.metrics import REVIEWS_DB_REQUESTS_TOTAL
 
-
-REVIEWS_DB_REQUESTS_TOTAL = Counter(
-    "reviews_db_requests_total",
-    "Total DB requests for reviews (used to calculate RPS/RPM)",
-    ["service"],
-)
 
 
 def _now() -> datetime:

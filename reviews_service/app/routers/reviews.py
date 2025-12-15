@@ -9,40 +9,14 @@ from app.dependencies.depend import (
     authentication_get_current_user,
     permission_required,
 )
-
 from loguru import logger
-from prometheus_client import Counter
 from env import SERVICE_NAME
-
-
-REVIEWS_CREATE_TOTAL = Counter(
-    "reviews_create_total",
-    "Review creation events",
-    ["service", "status"],
-)
-
-REVIEWS_GET_TOTAL = Counter(
-    "reviews_get_total",
-    "Get reviews for product events",
-    ["service", "status"],
-)
-
-REVIEWS_GET_BY_ID_TOTAL = Counter(
-    "reviews_get_by_id_total",
-    "Get review by id events",
-    ["service", "status"],
-)
-
-REVIEWS_PATCH_TOTAL = Counter(
-    "reviews_patch_total",
-    "Review patch events",
-    ["service", "status"],
-)
-
-REVIEWS_DELETE_TOTAL = Counter(
-    "reviews_delete_total",
-    "Review delete events",
-    ["service", "status"],
+from app.core.metrics import (
+    REVIEWS_CREATE_TOTAL,
+    REVIEWS_GET_TOTAL,
+    REVIEWS_GET_BY_ID_TOTAL,
+    REVIEWS_PATCH_TOTAL,
+    REVIEWS_DELETE_TOTAL,
 )
 
 

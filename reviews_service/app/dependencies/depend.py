@@ -4,22 +4,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from loguru import logger
 from prometheus_client import Counter
 from env import SECRET_KEY, ALGORITHM, SERVICE_NAME
+from app.core.metrics import AUTH_TOKEN_VALIDATION_TOTAL, AUTH_PERMISSION_CHECK_TOTAL
+
 
 
 bearer_scheme = HTTPBearer()
-
-
-AUTH_TOKEN_VALIDATION_TOTAL = Counter(
-    "reviews_auth_token_validation_total",
-    "Token validation events",
-    ["service", "result"],
-)
-
-AUTH_PERMISSION_CHECK_TOTAL = Counter(
-    "reviews_auth_permission_check_total",
-    "Permission check events",
-    ["service", "result", "permission"],
-)
 
 
 def authentication_get_current_user(

@@ -4,26 +4,8 @@ from typing import Optional
 from aiokafka import AIOKafkaProducer
 from env import KAFKA_BROKER, KAFKA_REVIEW_TOPIC, SERVICE_NAME
 from loguru import logger
-from prometheus_client import Counter
+from app.core.metrics import KAFKA_PRODUCER_START_TOTAL, KAFKA_PRODUCER_STOP_TOTAL, KAFKA_SEND_TOTAL
 
-
-KAFKA_PRODUCER_START_TOTAL = Counter(
-    "reviews_kafka_producer_start_total",
-    "Kafka producer start events",
-    ["service", "result"],
-)
-
-KAFKA_PRODUCER_STOP_TOTAL = Counter(
-    "reviews_kafka_producer_stop_total",
-    "Kafka producer stop events",
-    ["service", "result"],
-)
-
-KAFKA_SEND_TOTAL = Counter(
-    "reviews_kafka_send_total",
-    "Kafka send events",
-    ["service", "result"],
-)
 
 
 class KafkaProducer:
