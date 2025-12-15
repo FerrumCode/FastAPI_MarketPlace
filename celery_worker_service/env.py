@@ -18,7 +18,13 @@ ORDERS_SERVICE_TOKEN = os.getenv("ORDERS_SERVICE_TOKEN", "")
 DEFAULT_TARGET_CURRENCY = os.getenv("DEFAULT_TARGET_CURRENCY", "RUB")
 
 EXCHANGE_RATES_API_KEY = os.getenv("EXCHANGE_RATES_API_KEY", "")
-EXCHANGE_RATES_API_BASE_URL = os.getenv("EXCHANGE_RATES_API_BASE_URL",
-                                        "https://api.apilayer.com/exchangerates_data/latest")
+EXCHANGE_RATES_API_BASE_URL = os.getenv(
+    "EXCHANGE_RATES_API_BASE_URL",
+    "https://api.apilayer.com/exchangerates_data/latest",
+)
 EXCHANGE_RATES_API_TIMEOUT_SECONDS = int(os.getenv("EXCHANGE_RATES_API_TIMEOUT_SECONDS", "5"))
 
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+METRICS_PORT = int(os.getenv("METRICS_PORT", "9000"))
+PROMETHEUS_MULTIPROC_DIR = os.getenv("PROMETHEUS_MULTIPROC_DIR", "/tmp/celery_prometheus_multiproc")
+METRICS_BEARER_TOKEN_FILE = os.getenv("METRICS_BEARER_TOKEN_FILE", "/run/secrets/celery_worker_metrics.jwt")

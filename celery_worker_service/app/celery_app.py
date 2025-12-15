@@ -3,17 +3,26 @@ import os
 import sys
 import time
 from pathlib import Path
+import threading
+from http import HTTPStatus
+from http.server import HTTPServer
+from socketserver import ThreadingMixIn
 
 from celery import Celery, signals
-from env import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
+from env import (
+    CELERY_BROKER_URL,
+    CELERY_RESULT_BACKEND,
+    METRICS_PORT,
+    PROMETHEUS_MULTIPROC_DIR,
+    METRICS_BEARER_TOKEN_FILE,
+)
 from loguru import logger
-from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, start_http_server
+from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry
 from prometheus_client import multiprocess
+from prometheus_client.exposition import MetricsHandler
 
 
-PROMETHEUS_MULTIPROC_DIR = os.getenv("PROMETHEUS_MULTIPROC_DIR", "/tmp/celery_prometheus_multiproc")
 os.environ["PROMETHEUS_MULTIPROC_DIR"] = PROMETHEUS_MULTIPROC_DIR
-METRICS_PORT = int(os.getenv("METRICS_PORT", "9000"))
 _METRICS_SERVER_STARTED = False
 _TASK_START_TIMES = {}
 
@@ -60,18 +69,66 @@ def _cleanup_multiproc_dir() -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
+def _load_metrics_bearer_token() -> str:
+    try:
+        with open(METRICS_BEARER_TOKEN_FILE, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        logger.exception("Failed to read metrics bearer token file: {}", METRICS_BEARER_TOKEN_FILE)
+        return ""
+
+
+class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
+
 def _start_metrics_http_server() -> None:
     global _METRICS_SERVER_STARTED
     if _METRICS_SERVER_STARTED:
         return
+
+    token = _load_metrics_bearer_token()
     registry = CollectorRegistry()
     multiprocess.MultiProcessCollector(registry)
-    try:
-        start_http_server(METRICS_PORT, registry=registry)
-        _METRICS_SERVER_STARTED = True
-        logger.info("Prometheus /metrics HTTP server started on port {}", METRICS_PORT)
-    except OSError as exc:
-        logger.error("Failed to start Prometheus HTTP server on port {}: {}", METRICS_PORT, exc)
+
+    class _AuthMetricsHandler(MetricsHandler):
+        pass
+
+    _AuthMetricsHandler.registry = registry
+
+    def _unauthorized(handler: MetricsHandler) -> None:
+        handler.send_response(HTTPStatus.UNAUTHORIZED)
+        handler.send_header("WWW-Authenticate", 'Bearer realm="metrics"')
+        handler.end_headers()
+
+    def _not_found(handler: MetricsHandler) -> None:
+        handler.send_response(HTTPStatus.NOT_FOUND)
+        handler.end_headers()
+
+    def do_GET(self: MetricsHandler) -> None:
+        if self.path != "/metrics":
+            _not_found(self)
+            return
+
+        auth = self.headers.get("Authorization", "")
+        if not token or auth != f"Bearer {token}":
+            _unauthorized(self)
+            return
+
+        super(_AuthMetricsHandler, self).do_GET()
+
+    _AuthMetricsHandler.do_GET = do_GET
+
+    def _run() -> None:
+        try:
+            server = _ThreadingHTTPServer(("0.0.0.0", METRICS_PORT), _AuthMetricsHandler)
+            logger.info("Protected Prometheus /metrics HTTP server started on port {}", METRICS_PORT)
+            server.serve_forever()
+        except OSError as exc:
+            logger.error("Failed to start Prometheus HTTP server on port {}: {}", METRICS_PORT, exc)
+
+    threading.Thread(target=_run, daemon=True).start()
+    _METRICS_SERVER_STARTED = True
 
 
 TASKS_STARTED = Counter(
