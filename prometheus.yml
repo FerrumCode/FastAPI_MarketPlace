@@ -14,5 +14,6 @@ scrape_configs:
 
   - job_name: 'reviews_service'
     metrics_path: /metrics
+    bearer_token_file: /etc/prometheus/secrets/reviews_service_metrics.jwt
     static_configs:
       - targets: ['reviews_service:8000']

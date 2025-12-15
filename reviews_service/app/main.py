@@ -9,6 +9,7 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from app.core.kafka import kafka_producer
 from app.db import connect, disconnect
 from app.routers.reviews import router as reviews_router
+from app.routers.metrics import router as metrics_router
 from app.middleware.logging import LoggingMiddleware
 
 
@@ -47,15 +48,12 @@ app.add_middleware(
 )
 
 
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-
 app.add_middleware(LoggingMiddleware)
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
+app.include_router(metrics_router)
 app.include_router(reviews_router)
