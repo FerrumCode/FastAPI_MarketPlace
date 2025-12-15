@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from loguru import logger
-from prometheus_client import Counter
 from env import SERVICE_NAME
 
 from app.models.product import Product
@@ -18,15 +17,10 @@ from app.crud.products import (
     delete_product_form_db,
 )
 from app.dependencies.depend import authentication_get_current_user, permission_required
+from app.core.metrics import PRODUCTS_OPERATIONS_TOTAL
 
 
 router = APIRouter(prefix="/products", tags=["Products"])
-
-PRODUCTS_OPERATIONS_TOTAL = Counter(
-    "catalog_products_operations_total",
-    "Product endpoint operations",
-    ["service", "operation", "status"],
-)
 
 
 @router.get("/", response_model=list[ProductRead])

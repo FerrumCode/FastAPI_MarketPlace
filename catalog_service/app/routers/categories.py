@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio.client import Redis
 
 from loguru import logger
-from prometheus_client import Counter
 from env import SERVICE_NAME
 
 from app.dependencies.depend import authentication_get_current_user, permission_required
@@ -16,16 +15,10 @@ from app.crud.categories import (
     create_category_in_db,
     update_category_in_db,
 )
+from app.core.metrics import CATEGORIES_OPERATIONS_TOTAL
 
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
-
-CATEGORIES_OPERATIONS_TOTAL = Counter(
-    "catalog_categories_operations_total",
-    "Category endpoint operations",
-    ["service", "operation", "status"],
-)
-
 
 
 @router.get("/", response_model=list[CategoryRead])

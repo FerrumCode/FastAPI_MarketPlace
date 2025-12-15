@@ -3,21 +3,11 @@ import asyncio
 from aiokafka import AIOKafkaProducer
 import os
 from loguru import logger
-from prometheus_client import Counter, Gauge
+from app.core.metrics import KAFKA_OPS, KAFKA_CONNECTION_STATUS
+
 
 SERVICE_NAME = "catalog_service"
 
-KAFKA_OPS = Counter(
-    "catalog_kafka_ops",
-    "Kafka producer operations",
-    ["service", "operation", "status"],
-)
-
-KAFKA_CONNECTION_STATUS = Gauge(
-    "catalog_kafka_connection_status",
-    "Kafka producer connection status (1=connected, 0=disconnected)",
-    ["service"],
-)
 
 producer: AIOKafkaProducer | None = None
 
