@@ -3,24 +3,12 @@ from typing import Optional
 
 import redis
 from loguru import logger
-#from prometheus_client import Counter
 
 from env import RATES_REDIS_URL, RATES_CACHE_TTL_SECONDS, SERVICE_NAME
 from app.core.metrics import RATES_CACHE_OPERATIONS_TOTAL, RATES_CACHE_PARSE_ERRORS_TOTAL
 
-_redis = redis.Redis.from_url(RATES_REDIS_URL, decode_responses=True)
 
-# RATES_CACHE_OPERATIONS_TOTAL = Counter(
-#     "celery_worker_rates_cache_operations_total",
-#     "Redis operations for exchange rates cache",
-#     ["service", "operation", "result"],
-# )
-#
-# RATES_CACHE_PARSE_ERRORS_TOTAL = Counter(
-#     "celery_worker_rates_cache_parse_errors_total",
-#     "Failed to parse cached exchange rate value",
-#     ["service"],
-# )
+_redis = redis.Redis.from_url(RATES_REDIS_URL, decode_responses=True)
 
 
 def get_rate_from_cache(base: str, target: str) -> Optional[Decimal]:

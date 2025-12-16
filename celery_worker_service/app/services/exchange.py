@@ -2,7 +2,6 @@ from decimal import Decimal
 
 import requests
 from loguru import logger
-#from prometheus_client import Counter
 
 from .redis_cache import get_rate_from_cache, set_rate_to_cache
 from env import (
@@ -12,24 +11,6 @@ from env import (
     SERVICE_NAME,
 )
 from app.core.metrics import EXCHANGE_RATE_API_REQUESTS_TOTAL, EXCHANGE_RATE_CACHE_TOTAL, EXCHANGE_RATE_UPDATE_ALL_TOTAL
-
-# EXCHANGE_RATE_API_REQUESTS_TOTAL = Counter(
-#     "celery_worker_exchange_rate_api_requests_total",
-#     "External exchange rate API HTTP requests",
-#     ["service", "status", "base", "target"],
-# )
-#
-# EXCHANGE_RATE_CACHE_TOTAL = Counter(
-#     "celery_worker_exchange_rate_cache_total",
-#     "Exchange rate cache hits and misses",
-#     ["service", "result", "base", "target"],
-# )
-#
-# EXCHANGE_RATE_UPDATE_ALL_TOTAL = Counter(
-#     "celery_worker_exchange_rate_update_all_total",
-#     "Calls to update_all_rates()",
-#     ["service"],
-# )
 
 
 def _fetch_rate_from_api(base: str, target: str) -> Decimal:

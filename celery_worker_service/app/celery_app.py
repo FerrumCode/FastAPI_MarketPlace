@@ -17,7 +17,6 @@ from env import (
     METRICS_BEARER_TOKEN_FILE,
 )
 from loguru import logger
-#from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry
 from prometheus_client import multiprocess
 from prometheus_client.exposition import MetricsHandler
 from app.core.metrics import (
