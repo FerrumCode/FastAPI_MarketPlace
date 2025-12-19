@@ -88,8 +88,6 @@ services:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "auth_redis"
 
-
-
   catalog_service:
     build:
       context: ./catalog_service
@@ -181,8 +179,6 @@ services:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "catalog_redis"
 
-
-
   orders_service:
     build:
       context: ./orders_service
@@ -251,8 +247,6 @@ services:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "orders_pgadmin"
 
-
-
   reviews_service:
     build:
       context: ./reviews_service
@@ -299,8 +293,6 @@ services:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "reviews_mongo"
 
-
-
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -345,8 +337,6 @@ services:
       options:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "kafka"
-
-
 
   celery_worker_redis:
     image: redis:7
@@ -420,8 +410,6 @@ services:
         gelf-address: "udp://127.0.0.1:12201"
         tag: "celery_kafka_consumer"
 
-
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
@@ -472,8 +460,6 @@ services:
     networks:
       - backend_network
 
-
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -482,9 +468,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
+      - ./secrets:/etc/prometheus/secrets:ro
     networks:
       - backend_network
 
@@ -502,8 +486,6 @@ services:
       - prometheus
     networks:
       - backend_network
-
-
 
 volumes:
   auth_data:
