@@ -19,7 +19,7 @@ JWT_ACCESS_VALIDATION_TOTAL = Counter(
 )
 
 REFRESH_BLACKLIST_CHECKS_TOTAL = Counter(
-    "auth_auth_refresh_blacklist_checks_total",
+    "auth_refresh_blacklist_checks_total",
     "Refresh token blacklist checks",
     ["service", "result"],
 )
