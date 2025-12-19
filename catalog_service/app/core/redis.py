@@ -2,10 +2,9 @@ import os
 from fastapi import FastAPI
 import redis.asyncio as redis
 from loguru import logger
+
 from app.core.metrics import REDIS_OPS, REDIS_CONNECTION_STATUS
-
-SERVICE_NAME = "catalog_service"
-
+from env import SERVICE_NAME
 
 redis_client: redis.Redis | None = None
 
@@ -31,7 +30,10 @@ async def init_redis(app: FastAPI):
             status="success",
         ).inc()
 
-        logger.info("Redis client initialized successfully for service={service}", service=SERVICE_NAME)
+        logger.info(
+            "Redis client initialized successfully for service={service}",
+            service=SERVICE_NAME,
+        )
 
     except Exception:
         REDIS_CONNECTION_STATUS.labels(service=SERVICE_NAME).set(0)
@@ -51,15 +53,25 @@ async def init_redis(app: FastAPI):
 async def close_redis():
     global redis_client
     if redis_client:
-        await redis_client.close()
-        logger.info("Redis client closed for service={service}", service=SERVICE_NAME)
+        try:
+            await redis_client.close()
+            logger.info("Redis client closed for service={service}", service=SERVICE_NAME)
 
-        REDIS_CONNECTION_STATUS.labels(service=SERVICE_NAME).set(0)
-        REDIS_OPS.labels(
-            service=SERVICE_NAME,
-            operation="close",
-            status="success",
-        ).inc()
+            REDIS_CONNECTION_STATUS.labels(service=SERVICE_NAME).set(0)
+            REDIS_OPS.labels(
+                service=SERVICE_NAME,
+                operation="close",
+                status="success",
+            ).inc()
+        except Exception:
+            REDIS_CONNECTION_STATUS.labels(service=SERVICE_NAME).set(0)
+            REDIS_OPS.labels(
+                service=SERVICE_NAME,
+                operation="close",
+                status="error",
+            ).inc()
+            logger.exception("Error while closing Redis client for service={service}", service=SERVICE_NAME)
+            raise
     else:
         logger.info(
             "Attempt to close Redis client, but it is not initialized for service={service}",
@@ -88,12 +100,5 @@ async def get_redis() -> redis.Redis:
 
         raise RuntimeError("Redis клиент не инициализирован")
 
-    logger.info("Redis client instance obtained for service={service}", service=SERVICE_NAME)
-
-    REDIS_OPS.labels(
-        service=SERVICE_NAME,
-        operation="get_client",
-        status="success",
-    ).inc()
-
+    logger.debug("Redis client instance obtained for service={service}", service=SERVICE_NAME)
     return redis_client

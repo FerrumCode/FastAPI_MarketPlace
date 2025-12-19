@@ -25,6 +25,18 @@ REDIS_CONNECTION_STATUS = Gauge(
     ["service"],
 )
 
+REDIS_CACHE_HITS_TOTAL = Counter(
+    "catalog_redis_cache_hits_total",
+    "Redis cache hits (application-level)",
+    ["service", "cache_key"],
+)
+
+REDIS_CACHE_MISSES_TOTAL = Counter(
+    "catalog_redis_cache_misses_total",
+    "Redis cache misses (application-level)",
+    ["service", "cache_key"],
+)
+
 JWT_ACCESS_VALIDATION_TOTAL = Counter(
     "catalog_auth_jwt_access_validation_total",
     "Access JWT validation events",
@@ -36,6 +48,7 @@ PERMISSION_CHECKS_TOTAL = Counter(
     "Permission checks based on JWT",
     ["service", "permission", "result"],
 )
+
 HTTP_REQUESTS_TOTAL = Counter(
     "catalog_http_requests_total",
     "Total HTTP requests",
@@ -47,6 +60,7 @@ HTTP_REQUEST_DURATION_SECONDS = Histogram(
     "HTTP request duration in seconds",
     ["service", "method", "path"],
 )
+
 
 CATEGORIES_OPERATIONS_TOTAL = Counter(
     "catalog_categories_operations_total",
