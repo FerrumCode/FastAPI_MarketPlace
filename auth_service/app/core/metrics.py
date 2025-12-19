@@ -33,37 +33,13 @@ PERMISSION_CHECKS_TOTAL = Counter(
 HTTP_REQUESTS_TOTAL = Counter(
     "auth_http_requests_total",
     "Total HTTP requests",
-    ["service", "method", "path", "status_code"],
+    ["service", "method", "path", "status_code"],  # path is route template when available
 )
 
 HTTP_REQUEST_DURATION_SECONDS = Histogram(
     "auth_http_request_duration_seconds",
     "HTTP request latency in seconds",
     ["service", "method", "path"],
-)
-
-AUTH_REGISTRATIONS_TOTAL = Counter(
-    "auth_registrations_total",
-    "User registration events",
-    ["service", "status"],
-)
-
-AUTH_LOGINS_TOTAL = Counter(
-    "auth_logins_total",
-    "User login events",
-    ["service", "status"],
-)
-
-AUTH_TOKEN_REFRESH_TOTAL = Counter(
-    "auth_token_refresh_total",
-    "Token refresh events",
-    ["service", "result"],
-)
-
-AUTH_BLACKLIST_OPERATIONS_TOTAL = Counter(
-    "auth_blacklist_operations_total",
-    "Refresh token blacklist operations",
-    ["service", "action", "result"],
 )
 
 ACCESS_TOKENS_ISSUED_TOTAL = Counter(

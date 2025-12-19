@@ -7,6 +7,7 @@ from loguru import logger
 from app.routers import auth, users, roles, permissions, metrics
 from app.middleware.jwt_middleware import JWTMiddleware
 from app.middleware.logging import LoggingMiddleware
+from app.middleware.metrics import MetricsMiddleware
 from app.core.redis import init_redis, close_redis
 from app.db import engine, Base
 
@@ -44,6 +45,7 @@ async def shutdown():
 
 app.add_middleware(JWTMiddleware)
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 
 app.include_router(metrics.router)
 app.include_router(auth.router)
