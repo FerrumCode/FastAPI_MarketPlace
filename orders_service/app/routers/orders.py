@@ -29,10 +29,7 @@ from app.service.orders import (
     delete_order as svc_delete_order,
     update_order_status as svc_update_order_status,
 )
-from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE, SERVICE_NAME
-from app.core.metrics import ORDERS_API_REQUESTS_TOTAL
-
-
+from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -83,12 +80,6 @@ async def create_order(
             "Order lost after creation. order_id='{order_id}'",
             order_id=str(created_order.id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/",
-            method="POST",
-            status="order_lost",
-        ).inc()
         raise HTTPException(status_code=500, detail="Order lost after creation")
 
     await kafka_producer.send(
@@ -119,12 +110,6 @@ async def create_order(
         order_id=str(order_full.id),
     )
 
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/",
-        method="POST",
-        status="success",
-    ).inc()
     return order_full
 
 
@@ -149,12 +134,6 @@ async def get_order(
             "Order not found in get_order endpoint. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="GET",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -165,12 +144,6 @@ async def get_order(
             order_id=str(order_id),
             user_id=str(user_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="GET",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -181,12 +154,6 @@ async def get_order(
         order_id=str(order_id),
         user_id=str(user_id),
     )
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="GET",
-        status="success",
-    ).inc()
     return order
 
 
@@ -211,12 +178,6 @@ async def delete_order(
             "Order not found in delete_order endpoint. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="DELETE",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -227,12 +188,6 @@ async def delete_order(
             order_id=str(order_id),
             user_id=str(user_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="DELETE",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -255,12 +210,6 @@ async def delete_order(
         order_id=str(order_id),
     )
 
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="DELETE",
-        status="success",
-    ).inc()
     return None
 
 
@@ -287,12 +236,6 @@ async def patch_order_status(
             "Order not found in patch_order_status endpoint. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="PATCH",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -303,12 +246,6 @@ async def patch_order_status(
             order_id=str(order_id),
             user_id=str(user_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="PATCH",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -338,12 +275,6 @@ async def patch_order_status(
             "Order not found after status patch in patch_order_status endpoint. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/{order_id}",
-            method="PATCH",
-            status="not_found_after_patch",
-        ).inc()
         raise HTTPException(status_code=404, detail="Order not found")
 
     logger.info(
@@ -351,12 +282,6 @@ async def patch_order_status(
         order_id=str(order_id),
         status=fresh.status,
     )
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/{order_id}",
-        method="PATCH",
-        status="success",
-    ).inc()
     return fresh
 
 
@@ -385,12 +310,6 @@ async def make_final_order_with_delivery(
             "Order not found in make_final_order_with_delivery endpoint. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/make_final_order_with_delivery/{order_id}",
-            method="PATCH",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     if payload.items:
@@ -409,12 +328,6 @@ async def make_final_order_with_delivery(
                     "Order item for update not found in make_final_order_with_delivery. order_id='{order_id}'",
                     order_id=str(order_id),
                 )
-                ORDERS_API_REQUESTS_TOTAL.labels(
-                    service=SERVICE_NAME,
-                    endpoint="/orders/make_final_order_with_delivery/{order_id}",
-                    method="PATCH",
-                    status="item_not_found",
-                ).inc()
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Order item for update not found",
@@ -502,12 +415,6 @@ async def make_final_order_with_delivery(
             "Order not found after finalization in make_final_order_with_delivery. order_id='{order_id}'",
             order_id=str(order_id),
         )
-        ORDERS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/orders/make_final_order_with_delivery/{order_id}",
-            method="PATCH",
-            status="not_found_after_finalize",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     await kafka_producer.send(
@@ -537,10 +444,4 @@ async def make_final_order_with_delivery(
         order_id=str(fresh.id),
     )
 
-    ORDERS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/orders/make_final_order_with_delivery/{order_id}",
-        method="PATCH",
-        status="success",
-    ).inc()
     return OrderOut.model_validate(fresh)

@@ -1,3 +1,10 @@
+"""
+ИЗМЕНЕНИЯ:
+- Удалены все обращения к ORDER_ITEMS_API_REQUESTS_TOTAL (инкременты метрик на уровне роутера).
+- Удалён импорт ORDER_ITEMS_API_REQUESTS_TOTAL.
+- Удалён импорт SERVICE_NAME (больше не используется в этом файле).
+"""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,10 +23,6 @@ from app.crud.order_items import (
     delete_order_item_from_db,
 )
 from app.dependencies.depend import authentication_get_current_user, permission_required
-from env import SERVICE_NAME
-from app.core.metrics import ORDER_ITEMS_API_REQUESTS_TOTAL
-
-
 
 router = APIRouter(prefix="/order_items_crud", tags=["Order items CRUD"])
 
@@ -44,12 +47,6 @@ async def get_order_item(
             "Order item not found in get_order_item endpoint. item_id='{item_id}'",
             item_id=id,
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="GET",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     owner_id = await db.scalar(
@@ -61,12 +58,6 @@ async def get_order_item(
             item_id=id,
             order_id=str(order_item.order_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="GET",
-            status="order_not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -77,12 +68,6 @@ async def get_order_item(
             item_id=id,
             user_id=str(user_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="GET",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -93,12 +78,6 @@ async def get_order_item(
         item_id=id,
         user_id=str(user_id),
     )
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="GET",
-        status="success",
-    ).inc()
     return order_item
 
 
@@ -123,12 +102,6 @@ async def create_order_item(
         item_id=str(result.id),
         order_id=str(result.order_id),
     )
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/",
-        method="POST",
-        status="success",
-    ).inc()
     return result
 
 
@@ -154,12 +127,6 @@ async def update_order_item(
             "Order item not found in update_order_item endpoint. item_id='{item_id}'",
             item_id=id,
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="PUT",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     owner_id = await db.scalar(
@@ -171,12 +138,6 @@ async def update_order_item(
             item_id=id,
             order_id=str(order_item.order_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="PUT",
-            status="order_not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -187,12 +148,6 @@ async def update_order_item(
             item_id=id,
             user_id=str(user_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="PUT",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -204,12 +159,6 @@ async def update_order_item(
         item_id=id,
         order_id=str(result.order_id),
     )
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="PUT",
-        status="success",
-    ).inc()
     return result
 
 
@@ -233,12 +182,6 @@ async def delete_order_item(
             "Order item not found in delete_order_item endpoint. item_id='{item_id}'",
             item_id=id,
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="DELETE",
-            status="not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     owner_id = await db.scalar(
@@ -250,12 +193,6 @@ async def delete_order_item(
             item_id=id,
             order_id=str(order_item.order_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="DELETE",
-            status="order_not_found",
-        ).inc()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
@@ -266,12 +203,6 @@ async def delete_order_item(
             item_id=id,
             user_id=str(user_id),
         )
-        ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-            service=SERVICE_NAME,
-            endpoint="/order_items_crud/{id}",
-            method="DELETE",
-            status="forbidden",
-        ).inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -282,10 +213,4 @@ async def delete_order_item(
         "Order item deleted successfully in delete_order_item endpoint. item_id='{item_id}'",
         item_id=id,
     )
-    ORDER_ITEMS_API_REQUESTS_TOTAL.labels(
-        service=SERVICE_NAME,
-        endpoint="/order_items_crud/{id}",
-        method="DELETE",
-        status="success",
-    ).inc()
     return result
