@@ -1,4 +1,4 @@
-from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry
+from prometheus_client import Counter, Gauge, Histogram
 
 
 EXCHANGE_RATE_API_REQUESTS_TOTAL = Counter(
@@ -53,6 +53,12 @@ RATES_CACHE_OPERATIONS_TOTAL = Counter(
     "celery_worker_rates_cache_operations_total",
     "Redis operations for exchange rates cache",
     ["service", "operation", "result"],
+)
+
+RATES_CACHE_GET_TOTAL = Counter(
+    "celery_worker_rates_cache_get_total",
+    "Redis GET hits and misses for exchange rates cache (by currency pair)",
+    ["service", "result", "base", "target"],
 )
 
 RATES_CACHE_PARSE_ERRORS_TOTAL = Counter(
