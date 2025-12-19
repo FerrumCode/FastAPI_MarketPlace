@@ -11,6 +11,7 @@ from app.db import connect, disconnect
 from app.routers.reviews import router as reviews_router
 from app.routers.metrics import router as metrics_router
 from app.middleware.logging import LoggingMiddleware
+from app.middleware.metrics import MetricsMiddleware
 
 
 logger.remove()
@@ -48,12 +49,14 @@ app.add_middleware(
 )
 
 
-app.add_middleware(LoggingMiddleware)
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 
 app.include_router(metrics_router)
 app.include_router(reviews_router)

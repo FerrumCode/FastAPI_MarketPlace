@@ -10,15 +10,6 @@ from app.dependencies.depend import (
     permission_required,
 )
 from loguru import logger
-from env import SERVICE_NAME
-from app.core.metrics import (
-    REVIEWS_CREATE_TOTAL,
-    REVIEWS_GET_TOTAL,
-    REVIEWS_GET_BY_ID_TOTAL,
-    REVIEWS_PATCH_TOTAL,
-    REVIEWS_DELETE_TOTAL,
-)
-
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -45,7 +36,6 @@ async def add_review(
         product_id=data["product_id"],
         user_id=data["user_id"],
     )
-    REVIEWS_CREATE_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
 
     try:
         logger.info(
@@ -95,7 +85,6 @@ async def get_reviews(
         count=len(data),
         product_id=product_id,
     )
-    REVIEWS_GET_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
     return data
 
 
@@ -110,7 +99,6 @@ async def get_review_by_id(review_id: str):
         "Successfully retrieved review by id={review_id}",
         review_id=review_id,
     )
-    REVIEWS_GET_BY_ID_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
     return data
 
 
@@ -136,8 +124,9 @@ async def patch_review(
             "Patch review: review_id={review_id} not found",
             review_id=review_id,
         )
-        REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="not_found").inc()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
+        )
 
     review_user_uuid = UUID(review.get("user_id"))
     if review_user_uuid is None:
@@ -145,7 +134,6 @@ async def patch_review(
             "Patch review: review_id={review_id} has no owner",
             review_id=review_id,
         )
-        REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="no_owner").inc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Review has no owner",
@@ -159,7 +147,6 @@ async def patch_review(
             user_id=current_user["id"],
             review_id=review_id,
         )
-        REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="forbidden").inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
@@ -176,7 +163,6 @@ async def patch_review(
         review_id=review_id,
         user_id=current_user["id"],
     )
-    REVIEWS_PATCH_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
     return result
 
 
@@ -200,8 +186,9 @@ async def delete_review(
             "Delete review: review_id={review_id} not found",
             review_id=review_id,
         )
-        REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="not_found").inc()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
+        )
 
     review_user_uuid = UUID(review.get("user_id"))
     if review_user_uuid is None:
@@ -209,7 +196,6 @@ async def delete_review(
             "Delete review: review_id={review_id} has no owner",
             review_id=review_id,
         )
-        REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="no_owner").inc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Review has no owner",
@@ -223,7 +209,6 @@ async def delete_review(
             user_id=current_user["id"],
             review_id=review_id,
         )
-        REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="forbidden").inc()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this review (owner only, role 'user')",
@@ -239,5 +224,4 @@ async def delete_review(
         review_id=review_id,
         user_id=current_user["id"],
     )
-    REVIEWS_DELETE_TOTAL.labels(service=SERVICE_NAME, status="success").inc()
     return result
