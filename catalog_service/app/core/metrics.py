@@ -53,9 +53,3 @@ CATEGORIES_OPERATIONS_TOTAL = Counter(
     "Category endpoint operations",
     ["service", "operation", "status"],
 )
-
-PRODUCTS_OPERATIONS_TOTAL = Counter(
-    "catalog_products_operations_total",
-    "Product endpoint operations",
-    ["service", "operation", "status"],
-)

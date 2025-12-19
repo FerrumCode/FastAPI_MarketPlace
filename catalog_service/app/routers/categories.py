@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio.client import Redis
 
 from loguru import logger
-from env import SERVICE_NAME
 
 from app.dependencies.depend import authentication_get_current_user, permission_required
 from app.db_depends import get_db
@@ -15,8 +14,6 @@ from app.crud.categories import (
     create_category_in_db,
     update_category_in_db,
 )
-from app.core.metrics import CATEGORIES_OPERATIONS_TOTAL
-
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -27,7 +24,6 @@ async def get_all_categories(
     redis: Redis = Depends(get_redis),
     user=Depends(authentication_get_current_user),
 ):
-    operation = "list"
     logger.info("Request to GET all categories")
 
     try:
@@ -36,19 +32,9 @@ async def get_all_categories(
             "Successfully retrieved categories list, count={count}",
             count=len(response),
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="success",
-        ).inc()
         return response
     except Exception:
         logger.exception("Error while getting all categories")
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="error",
-        ).inc()
         raise
 
 
@@ -62,7 +48,6 @@ async def create_category(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    operation = "create"
     logger.info(
         "Request to CREATE category with name='{name}'",
         name=category.name,
@@ -75,19 +60,9 @@ async def create_category(
             id=response.id,
             name=response.name,
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="success",
-        ).inc()
         return response
     except Exception:
         logger.exception("Error while creating category")
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="error",
-        ).inc()
         raise
 
 
@@ -102,7 +77,6 @@ async def update_category(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    operation = "update"
     logger.info(
         "Request to UPDATE category with id={id}",
         id=id,
@@ -115,22 +89,12 @@ async def update_category(
             id=response.id,
             name=response.name,
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="success",
-        ).inc()
         return response
     except Exception:
         logger.exception(
             "Error while updating category with id={id}",
             id=id,
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="error",
-        ).inc()
         raise
 
 
@@ -143,7 +107,6 @@ async def delete_category(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    operation = "delete"
     logger.info(
         "Request to DELETE category with id={id}",
         id=id,
@@ -155,20 +118,10 @@ async def delete_category(
             "Category with id={id} successfully deleted",
             id=id,
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="success",
-        ).inc()
         return response
     except Exception:
         logger.exception(
             "Error while deleting category with id={id}",
             id=id,
         )
-        CATEGORIES_OPERATIONS_TOTAL.labels(
-            service=SERVICE_NAME,
-            operation=operation,
-            status="error",
-        ).inc()
         raise

@@ -9,6 +9,7 @@ from app.routers import categories, products, metrics
 from app.core.redis import init_redis, close_redis
 from app.core.kafka import init_kafka, close_kafka
 from app.middleware.logging import LoggingMiddleware
+from app.middleware.metrics import MetricsMiddleware
 
 
 logger.remove()
@@ -43,6 +44,7 @@ async def shutdown():
 
 
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 
 app.include_router(metrics.router)
 app.include_router(categories.router)
