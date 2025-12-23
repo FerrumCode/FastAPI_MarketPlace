@@ -1,4 +1,3 @@
-# services/exchange.py
 from decimal import Decimal
 import time
 
@@ -178,7 +177,6 @@ def _fetch_rate_from_api(base: str, target: str) -> Decimal:
         ).inc()
         return Decimal(str(rate))
 
-    # If we ever got here (should be rare), raise the last HTTP error
     if last_http_error is not None:
         raise last_http_error
     raise RuntimeError("Failed to fetch exchange rate from API (unknown error)")
@@ -228,7 +226,6 @@ def get_exchange_rate(base: str, target: str) -> Decimal:
 
     lock = acquire_rate_lock(base, target)
     if lock is None:
-        # Another worker is fetching. Wait a bit for the cache to be filled.
         deadline = time.monotonic() + _WAIT_FOR_CACHE_FILL_SECONDS
         while time.monotonic() < deadline:
             rate = peek_rate_from_cache(base, target)
