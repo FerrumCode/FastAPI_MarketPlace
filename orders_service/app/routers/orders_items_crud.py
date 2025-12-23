@@ -1,10 +1,3 @@
-"""
-ИЗМЕНЕНИЯ:
-- Удалены все обращения к ORDER_ITEMS_API_REQUESTS_TOTAL (инкременты метрик на уровне роутера).
-- Удалён импорт ORDER_ITEMS_API_REQUESTS_TOTAL.
-- Удалён импорт SERVICE_NAME (больше не используется в этом файле).
-"""
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
