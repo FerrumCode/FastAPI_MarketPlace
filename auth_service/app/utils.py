@@ -7,8 +7,6 @@ from datetime import datetime, timedelta
 import jwt
 import redis.asyncio as redis
 from loguru import logger
-from prometheus_client import Counter
-
 from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
@@ -19,31 +17,12 @@ from app.dependencies.depend import (
     ensure_refresh_token_not_blacklisted,
     authentication_and_get_current_user
 )
-
 from env import SECRET_KEY, ALGORITHM, REFRESH_TOKEN_EXPIRE_DAYS, SERVICE_NAME
+from app.core.metrics import ACCESS_TOKENS_ISSUED_TOTAL, REFRESH_TOKENS_ISSUED_TOTAL, AUTHENTICATION_ATTEMPTS_TOTAL
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-ACCESS_TOKENS_ISSUED_TOTAL = Counter(
-    "auth_access_tokens_issued_total",
-    "Access tokens created",
-    ["service", "role_name"],
-)
-
-REFRESH_TOKENS_ISSUED_TOTAL = Counter(
-    "auth_refresh_tokens_issued_total",
-    "Refresh tokens created",
-    ["service", "role_name"],
-)
-
-AUTHENTICATION_ATTEMPTS_TOTAL = Counter(
-    "auth_authentication_attempts_total",
-    "User authentication attempts",
-    ["service", "result"],
-)
 
 
 async def fetch_permissions_by_role_id(db: AsyncSession, role_id: int) -> list[str]:
