@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+SERVICE_NAME = os.getenv("SERVICE_NAME")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 DB_HOST = os.getenv("DB_HOST")
@@ -15,7 +16,8 @@ DB_NAME = os.getenv("DB_NAME")
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = os.getenv("REDIS_PORT")
-
+CATEGORIES_CACHE_KEY = os.getenv("CATEGORIES_CACHE_KEY")
+CATEGORIES_CACHE_TTL_SECONDS = os.getenv("CATEGORIES_CACHE_TTL_SECONDS")
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 
