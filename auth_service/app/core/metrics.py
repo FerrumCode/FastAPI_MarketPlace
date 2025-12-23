@@ -33,7 +33,7 @@ PERMISSION_CHECKS_TOTAL = Counter(
 HTTP_REQUESTS_TOTAL = Counter(
     "auth_http_requests_total",
     "Total HTTP requests",
-    ["service", "method", "path", "status_code"],  # path is route template when available
+    ["service", "method", "path", "status_code"],
 )
 
 HTTP_REQUEST_DURATION_SECONDS = Histogram(

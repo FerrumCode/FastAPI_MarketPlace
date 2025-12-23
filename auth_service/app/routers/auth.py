@@ -53,6 +53,7 @@ async def register(
             logger.error(
                 "Role 'user' not found during registration of user '{name}'",
                 name=create_user.name,
+                email=create_user.email,
             )
             raise HTTPException(status_code=527, detail="Role 'user' not found")
 
