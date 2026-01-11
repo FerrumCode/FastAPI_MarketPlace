@@ -1,35 +1,14 @@
 import jwt
 from fastapi import Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordBearer
-
 import redis.asyncio as redis
 from loguru import logger
-from prometheus_client import Counter
-
 from env import SECRET_KEY, ALGORITHM, SERVICE_NAME
 from app.core.redis import get_redis
+from app.core.metrics import JWT_ACCESS_VALIDATION_TOTAL, REFRESH_BLACKLIST_CHECKS_TOTAL, PERMISSION_CHECKS_TOTAL
 
 
 bearer_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-
-JWT_ACCESS_VALIDATION_TOTAL = Counter(
-    "auth_jwt_access_validation_total",
-    "Access JWT validation events",
-    ["service", "result"],
-)
-
-REFRESH_BLACKLIST_CHECKS_TOTAL = Counter(
-    "auth_refresh_blacklist_checks_total",
-    "Refresh token blacklist checks",
-    ["service", "result"],
-)
-
-PERMISSION_CHECKS_TOTAL = Counter(
-    "auth_permission_checks_total",
-    "Permission checks based on JWT",
-    ["service", "permission", "result"],
-)
 
 
 async def ensure_refresh_token_not_blacklisted(

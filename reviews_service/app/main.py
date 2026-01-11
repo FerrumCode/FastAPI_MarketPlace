@@ -1,18 +1,30 @@
 from contextlib import asynccontextmanager
-import logging
-
+import sys
+from loguru import logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
-from app.core.logging import setup_logging
 from app.core.kafka import kafka_producer
 from app.db import connect, disconnect
 from app.routers.reviews import router as reviews_router
+from app.routers.metrics import router as metrics_router
+from app.middleware.logging import LoggingMiddleware
+from app.middleware.metrics import MetricsMiddleware
 
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger.remove()
+logger.add(
+    sys.stdout,
+    format='{{"timestamp": "{time:YYYY-MM-DDTHH:mm:ssZ}", '
+           '"level": "{level}", '
+           '"service": "review", '
+           '"message": "{message}"}}',
+    level="INFO",
+    serialize=True,
+)
+
 
 
 @asynccontextmanager
@@ -37,11 +49,14 @@ app.add_middleware(
 )
 
 
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
+
+app.include_router(metrics_router)
 app.include_router(reviews_router)

@@ -13,8 +13,26 @@ scrape_configs:
     static_configs:
       - targets: ['auth_service:8000']
 
+  - job_name: 'catalog_service'
+    metrics_path: /metrics
+    bearer_token_file: /etc/prometheus/secrets/catalog_service_metrics.jwt
+    static_configs:
+      - targets: ['catalog_service:8000']
+
+  - job_name: 'celery_worker_service'
+    metrics_path: /metrics
+    bearer_token_file: /etc/prometheus/secrets/celery_worker_metrics.jwt
+    static_configs:
+      - targets: ['celery_worker_service:9000']
+
   - job_name: 'orders_service'
     metrics_path: /metrics
     bearer_token_file: /etc/prometheus/secrets/orders_service_metrics.jwt
     static_configs:
       - targets: ['orders_service:8000']
+
+  - job_name: 'reviews_service'
+    metrics_path: /metrics
+    bearer_token_file: /etc/prometheus/secrets/reviews_service_metrics.jwt
+    static_configs:
+      - targets: ['reviews_service:8000']
