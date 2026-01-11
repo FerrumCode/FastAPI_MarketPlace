@@ -376,6 +376,7 @@ services:
       - ./celery_worker_service/.env
     volumes:
       - ./celery_worker_service:/app
+      - ./secrets:/run/secrets:ro
     command: ["celery", "-A", "app.celery_app:celery_app", "worker", "-B", "-l", "info"]
     ports:
       - "9000:9000"
