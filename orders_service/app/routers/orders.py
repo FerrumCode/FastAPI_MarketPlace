@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -33,15 +34,22 @@ from env import KAFKA_ORDER_TOPIC, CURRENCY_BASE
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@router.post("/",
-             dependencies=[Depends(permission_required("can_create_order"))],
-             response_model=OrderOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    dependencies=[Depends(permission_required("can_create_order"))],
+    response_model=OrderOut,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(authentication_get_current_user),
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
+    logger.info(
+        "Create order request received for user_id='{user_id}'",
+        user_id=current_user.get("id"),
+    )
     bearer_header = f"Bearer {creds.credentials}"
 
     user_uuid = (
@@ -60,8 +68,18 @@ async def create_order(
             auth_header=bearer_header,
         )
 
+    logger.info(
+        "Order created via service. order_id='{order_id}', user_id='{user_id}'",
+        order_id=str(created_order.id),
+        user_id=str(user_uuid),
+    )
+
     order_full = await svc_get_order(db, created_order.id)
     if not order_full:
+        logger.error(
+            "Order lost after creation. order_id='{order_id}'",
+            order_id=str(created_order.id),
+        )
         raise HTTPException(status_code=500, detail="Order lost after creation")
 
     await kafka_producer.send(
@@ -87,47 +105,89 @@ async def create_order(
         },
         key=str(order_full.id),
     )
+    logger.info(
+        "Kafka event 'ORDER_CREATED' sent from orders router. order_id='{order_id}'",
+        order_id=str(order_full.id),
+    )
 
     return order_full
 
 
-@router.get("/{order_id}",
-            dependencies=[Depends(permission_required("can_get_order"))],
-            response_model=OrderOut)
+@router.get(
+    "/{order_id}",
+    dependencies=[Depends(permission_required("can_get_order"))],
+    response_model=OrderOut,
+)
 async def get_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
+    logger.info(
+        "Get order request received. order_id='{order_id}', user_id='{user_id}'",
+        order_id=str(order_id),
+        user_id=current_user.get("id"),
+    )
     order = await svc_get_order(db, order_id)
     if not order:
+        logger.warning(
+            "Order not found in get_order endpoint. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
     if (order.user_id != user_id) and ("can_get_all_orders" not in perms):
+        logger.warning(
+            "Access to order forbidden in get_order endpoint. order_id='{order_id}', user_id='{user_id}'",
+            order_id=str(order_id),
+            user_id=str(user_id),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
         )
+
+    logger.info(
+        "Order successfully returned in get_order endpoint. order_id='{order_id}', user_id='{user_id}'",
+        order_id=str(order_id),
+        user_id=str(user_id),
+    )
     return order
 
 
-@router.delete("/{order_id}",
-               dependencies=[Depends(permission_required("can_delete_order"))],
-               status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{order_id}",
+    dependencies=[Depends(permission_required("can_delete_order"))],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_order(
     order_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
+    logger.info(
+        "Delete order request received. order_id='{order_id}', user_id='{user_id}'",
+        order_id=str(order_id),
+        user_id=current_user.get("id"),
+    )
     order = await svc_get_order(db, order_id)
     if not order:
+        logger.warning(
+            "Order not found in delete_order endpoint. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
     if (order.user_id != user_id) and ("can_delete_all_orders" not in perms):
+        logger.warning(
+            "Access to order forbidden in delete_order endpoint. order_id='{order_id}', user_id='{user_id}'",
+            order_id=str(order_id),
+            user_id=str(user_id),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -145,25 +205,47 @@ async def delete_order(
         },
         key=str(order_id),
     )
+    logger.info(
+        "Kafka event 'ORDER_UPDATED' sent from delete_order endpoint. order_id='{order_id}'",
+        order_id=str(order_id),
+    )
+
     return None
 
 
-@router.patch("/{order_id}",
-              dependencies=[Depends(permission_required("can_patch_order_status"))],
-              response_model=OrderOut)
+@router.patch(
+    "/{order_id}",
+    dependencies=[Depends(permission_required("can_patch_order_status"))],
+    response_model=OrderOut,
+)
 async def patch_order_status(
     order_id: UUID,
     payload: OrderStatusPatch,
     db: AsyncSession = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(authentication_get_current_user)
+    current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
+    logger.info(
+        "Patch order status request received. order_id='{order_id}', new_status='{status}', user_id='{user_id}'",
+        order_id=str(order_id),
+        status=payload.status,
+        user_id=current_user.get("id"),
+    )
     order = await svc_get_order(db, order_id)
     if not order:
+        logger.warning(
+            "Order not found in patch_order_status endpoint. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     user_id = UUID(current_user["id"])
     perms = current_user.get("permissions") or []
     if (order.user_id != user_id) and ("can_patch_all_orders_status" not in perms):
+        logger.warning(
+            "Access to order forbidden in patch_order_status endpoint. order_id='{order_id}', user_id='{user_id}'",
+            order_id=str(order_id),
+            user_id=str(user_id),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this order (owner only)",
@@ -181,10 +263,25 @@ async def patch_order_status(
         },
         key=str(order_id),
     )
+    logger.info(
+        "Kafka event 'ORDER_UPDATED' sent from patch_order_status endpoint. order_id='{order_id}', status='{status}'",
+        order_id=str(order_id),
+        status=payload.status,
+    )
 
     fresh = await svc_get_order(db, order_id)
     if not fresh:
+        logger.error(
+            "Order not found after status patch in patch_order_status endpoint. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=404, detail="Order not found")
+
+    logger.info(
+        "Order successfully updated in patch_order_status endpoint. order_id='{order_id}', status='{status}'",
+        order_id=str(order_id),
+        status=fresh.status,
+    )
     return fresh
 
 
@@ -199,11 +296,20 @@ async def make_final_order_with_delivery(
     db: AsyncSession = Depends(get_db),
     current_user: Dict[str, Any] = Depends(authentication_get_current_user),
 ):
+    logger.info(
+        "Finalizing order with delivery request received. order_id='{order_id}', user_id='{user_id}'",
+        order_id=str(order_id),
+        user_id=current_user.get("id"),
+    )
     result = await db.execute(
         select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
     )
     order = result.scalar_one_or_none()
     if not order:
+        logger.warning(
+            "Order not found in make_final_order_with_delivery endpoint. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     if payload.items:
@@ -218,43 +324,97 @@ async def make_final_order_with_delivery(
                 target_item = items_by_product.get(patch_item.product_id)
 
             if target_item is None:
+                logger.warning(
+                    "Order item for update not found in make_final_order_with_delivery. order_id='{order_id}'",
+                    order_id=str(order_id),
+                )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Order item for update not found",
                 )
 
             if patch_item.quantity is not None:
+                logger.debug(
+                    "Updating quantity for item in finalized order. order_id='{order_id}', item_id='{item_id}', quantity={quantity}",
+                    order_id=str(order_id),
+                    item_id=str(target_item.id),
+                    quantity=patch_item.quantity,
+                )
                 target_item.quantity = patch_item.quantity
             if patch_item.unit_price is not None:
+                logger.debug(
+                    "Updating unit_price for item in finalized order. order_id='{order_id}', item_id='{item_id}', unit_price={unit_price}",
+                    order_id=str(order_id),
+                    item_id=str(target_item.id),
+                    unit_price=patch_item.unit_price,
+                )
                 target_item.unit_price = patch_item.unit_price
 
     if payload.cart_price is not None:
+        logger.debug(
+            "Overriding cart_price for finalized order. order_id='{order_id}', cart_price={cart_price}",
+            order_id=str(order_id),
+            cart_price=payload.cart_price,
+        )
         order.cart_price = payload.cart_price
     elif payload.items:
         cart = Decimal("0.00")
         for item in order.items:
             cart += Decimal(str(item.unit_price)) * int(item.quantity)
+        logger.debug(
+            "Recalculated cart_price for finalized order. order_id='{order_id}', cart_price={cart_price}",
+            order_id=str(order_id),
+            cart_price=float(cart),
+        )
         order.cart_price = cart
 
     if payload.delivery_price is not None:
+        logger.debug(
+            "Setting delivery_price for finalized order. order_id='{order_id}', delivery_price={delivery_price}",
+            order_id=str(order_id),
+            delivery_price=payload.delivery_price,
+        )
         order.delivery_price = payload.delivery_price
 
     if payload.total_price is not None:
+        logger.debug(
+            "Overriding total_price for finalized order. order_id='{order_id}', total_price={total_price}",
+            order_id=str(order_id),
+            total_price=payload.total_price,
+        )
         order.total_price = payload.total_price
     else:
         if payload.cart_price is not None or payload.delivery_price is not None or payload.items:
             order.total_price = order.cart_price + order.delivery_price
+            logger.debug(
+                "Recalculated total_price for finalized order. order_id='{order_id}', total_price={total_price}",
+                order_id=str(order_id),
+                total_price=float(order.total_price),
+            )
 
     if payload.status is not None:
+        logger.debug(
+            "Setting status for finalized order. order_id='{order_id}', status='{status}'",
+            order_id=str(order_id),
+            status=payload.status,
+        )
         order.status = payload.status
 
     await db.commit()
+    logger.info(
+        "Order finalized with delivery and committed to DB. order_id='{order_id}'",
+        order_id=str(order_id),
+    )
 
     result2 = await db.execute(
         select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
     )
     fresh = result2.scalar_one_or_none()
     if not fresh:
+        logger.error(
+            "Order not found after finalization in make_final_order_with_delivery. order_id='{order_id}'",
+            order_id=str(order_id),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     await kafka_producer.send(
@@ -278,6 +438,10 @@ async def make_final_order_with_delivery(
             "reason": "finalized_with_delivery",
         },
         key=str(fresh.id),
+    )
+    logger.info(
+        "Kafka event 'ORDER_UPDATED' sent from make_final_order_with_delivery endpoint. order_id='{order_id}'",
+        order_id=str(fresh.id),
     )
 
     return OrderOut.model_validate(fresh)
