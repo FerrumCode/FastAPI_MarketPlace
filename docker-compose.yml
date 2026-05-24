@@ -491,6 +491,14 @@ services:
     networks:
       - backend_network
 
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - backend_network
+
 volumes:
   auth_data:
   auth_pgadmin_data:
